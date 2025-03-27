@@ -4,8 +4,6 @@ MOOJ is an online judge platform for mathematics proofs with LLM-powered evaluat
 
 <img src="https://placeholder.com/logo.png" alt="Moo the Cow" width="200"/>
 
-*Meet Moo, our mathematical cow mascot!*
-
 ## Key Features
 
 - **Submit Math Proofs**: Upload handwritten solutions or enter LaTeX
