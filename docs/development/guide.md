@@ -17,10 +17,9 @@
 5. [Evaluation Pipeline Implementation](#5-evaluation-pipeline-implementation)
    - [Placeholder Implementation](#51-placeholder-implementation)
    - [Parallelization Strategy](#52-parallelization-strategy)
-6. [Project Structure](#6-project-structure)
-7. [Running Tests](#7-running-tests)
-   - [Backend Tests](#71-backend-tests)
-   - [Frontend Tests](#72-frontend-tests)
+6. [Running Tests](#6-running-tests)
+   - [Backend Tests](#61-backend-tests)
+   - [Frontend Tests](#62-frontend-tests)
 
 This guide contains the development standards, workflow guidelines, and progress tracking for the MOOJ platform. It serves as the central reference for developers working on the project.
 
@@ -169,74 +168,9 @@ When implementing the full evaluation pipeline in Phase 3, follow these principl
 - Add comprehensive error handling and logging
 - Track processing time metrics
 
-## 6. Project Structure
+## 6. Running Tests
 
-```
-/
-├── backend/                     # Backend FastAPI application
-│   ├── app/                     # Main application code
-│   │   ├── api/                 # API router and endpoints
-│   │   │   └── v1/              # API version 1
-│   │   │       ├── endpoints/   # Resource-specific endpoints
-│   │   │       └── api.py       # Main API router
-│   │   ├── core/                # Core functionality
-│   │   │   └── config.py        # Application configuration
-│   │   ├── crud/                # CRUD operations
-│   │   ├── db/                  # Database setup and models
-│   │   │   ├── models/          # SQLAlchemy models
-│   │   │   ├── session.py       # Database session
-│   │   │   └── base.py          # Base model class
-│   │   ├── evaluation/          # Evaluation pipeline
-│   │   ├── schemas/             # Pydantic schemas
-│   │   └── main.py              # Entry point
-│   ├── .env                     # Environment variables
-│   ├── .env.example             # Example environment file
-│   ├── Dockerfile               # Docker configuration
-│   ├── healthcheck.py           # Container health check
-│   └── requirements.txt         # Python dependencies
-├── frontend/                    # React/TypeScript frontend
-│   ├── docs/                    # Frontend documentation
-│   ├── public/                  # Public assets
-│   ├── scripts/                 # Frontend utility scripts
-│   ├── src/                     # Source code
-│   │   ├── assets/              # Static assets
-│   │   │   ├── fonts/           # Font files
-│   │   │   ├── images/          # Image files
-│   │   │   └── styles/          # CSS styles
-│   │   ├── components/          # UI components
-│   │   ├── config/              # Configuration files
-│   │   ├── models/              # Data models
-│   │   ├── pages/               # Application pages
-│   │   ├── services/            # API services
-│   │   ├── store/               # State management
-│   │   ├── theme/               # UI theming
-│   │   ├── types/               # TypeScript definitions
-│   │   └── utils/               # Utility functions
-│   ├── .env                     # Frontend environment variables
-│   ├── Dockerfile               # Frontend Docker configuration
-│   └── package.json             # Frontend dependencies
-├── docs/                        # Project documentation
-│   ├── development/             # Development docs
-│   │   ├── guide.md             # Dev guide
-│   │   └── cursor_rules.md      # Core rules
-│   ├── technical-specification.md
-│   ├── implementation-plan.md
-│   └── deployment-guide.md
-├── scripts/                     # Project utility scripts
-│   ├── deploy_local.ps1         # Docker deployment (Windows)
-│   ├── deploy_local.sh          # Docker deployment (Unix)
-│   ├── run_backend_local.ps1    # Run backend (Windows)
-│   ├── run_backend_local.sh     # Run backend (Unix)
-│   ├── run_frontend_local.ps1   # Run frontend (Windows)
-│   ├── run_frontend_local.sh    # Run frontend (Unix)
-│   ├── setup_dev_environment.ps1 # Setup environment (Windows)
-│   └── setup_dev_environment.sh  # Setup environment (Unix)
-└── docker-compose.yml           # Container config
-``` 
-
-## 7. Running Tests
-
-### 7.1 Backend Tests
+### 6.1 Backend Tests
 
 The MOOJ project uses pytest for backend testing. The tests are organized in the `backend/tests` directory with the following structure:
 
@@ -291,6 +225,6 @@ To run the backend tests:
    .\scripts\run_backend_tests.ps1 --cov=app tests/ --cov-report=html
    ```
 
-### 7.2 Frontend Tests
+### 6.2 Frontend Tests
 
 // ... existing code ... 
