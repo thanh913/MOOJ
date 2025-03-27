@@ -1,0 +1,31 @@
+# MOOJ Rules
+
+## Development
+
+1. Start with Central Documentation: Read development/guide.md first
+2. Implementation Process: Follow implementation-plan.md steps sequentially
+3. Cross-Reference Documentation: Reference guide.md for standards, technical-specification.md for specs
+
+## Documentation
+
+### Structure
+- development/guide.md: Workflow, standards, and progress tracking
+- implementation-plan.md: Implementation steps only
+- technical-specification.md: Technical specifications and design
+- deployment-guide.md: Deployment instructions
+
+### Locations
+- /docs/: Main documentation
+- /backend/docs/: Backend documentation
+- /frontend/docs/: Frontend documentation
+
+### Updates
+1. When adding features: Mark implementation-plan.md steps done, update guide.md Progress
+2. When editing docs: Maintain cross-references, use relative links, update anchors
+
+### Standards
+- Use tables of contents and numbered sections
+- Place important information first
+- Be concise, clear, and consistent
+- Review and update documentation alongside code
+- Remove outdated information 
