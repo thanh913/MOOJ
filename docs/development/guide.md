@@ -15,8 +15,8 @@
    - [LLM Integration](#47-llm-integration)
    - [Database Design](#48-database-design)
 5. [Evaluation Pipeline Implementation](#5-evaluation-pipeline-implementation)
-   - [Placeholder Implementation](#51-placeholder-implementation)
-   - [Parallelization Strategy](#52-parallelization-strategy)
+   - [Component Overview](#51-component-overview)
+   - [Implementation Priority](#52-implementation-priority)
 6. [Running Tests](#6-running-tests)
    - [Backend Tests](#61-backend-tests)
    - [Frontend Tests](#62-frontend-tests)
@@ -135,38 +135,27 @@ When implementing features, follow these priorities:
 
 ## 5. Evaluation Pipeline Implementation
 
-### 5.1 Placeholder Implementation
+The evaluation pipeline is implemented as a modular system with separate components for image conversion, error detection, evaluation, and appeal processing. For comprehensive details including function specifications, data flow, schemas, and implementation guidelines, refer to the dedicated [Evaluation Pipeline](../evaluation-pipeline.md) document.
 
-The evaluation modules are currently implemented as placeholders. The full implementation is deferred until Phase 3. Here's the current pattern:
+The current implementation uses placeholder functions that will be replaced with full LLM-powered implementation in Phase 3. When implementing the complete pipeline, follow the specifications, error handling, and parallelization guidelines in the Evaluation Pipeline document.
 
-```javascript
-// Placeholder implementation pattern (simplified)
-function find_all_errors(problem_statement, latex_solution) {
-  // In production this will call LLM APIs
-  return [
-    { type: "logical", location: "line 3", description: "Invalid assumption" },
-    { type: "mathematical", location: "line 7", description: "Incorrect application of theorem" }
-  ];
-}
+### 5.1 Component Overview
 
-function evaluate_solution(problem_statement, solution, errors, appeals = []) {
-  // In production this will use LLM for detailed feedback
-  return {
-    score: calculateMockScore(errors, appeals),
-    feedback: generateMockFeedback(errors, appeals)
-  };
-}
-```
+- `image_to_LaTeX`: Converts image submissions to LaTeX format
+- `find_all_errors`: Identifies errors in a submitted proof
+- `evaluate_solution`: Assigns score and generates feedback based on errors
+- `return_evaluation`: Orchestrates the initial evaluation process
+- `process_appeals`: Handles appeal processing in a separate step
 
-### 5.2 Parallelization Strategy
+### 5.2 Implementation Priority
 
-When implementing the full evaluation pipeline in Phase 3, follow these principles:
+When implementing the full evaluation pipeline in Phase 3, prioritize in this order:
+1. Core functionality with proper error handling
+2. Validation and error detection accuracy
+3. Performance optimization and parallelization
+4. User feedback quality and appeal processing
 
-- Use worker pools for distributing processing tasks
-- Implement timeouts for all external service calls
-- Process different parts of a solution concurrently
-- Add comprehensive error handling and logging
-- Track processing time metrics
+Refer to [Implementation Plan](../implementation-plan.md) for the sequence of evaluation pipeline tasks and [Evaluation Pipeline](../evaluation-pipeline.md) for detailed specifications.
 
 ## 6. Running Tests
 

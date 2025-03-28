@@ -121,55 +121,25 @@ MOOJ features a friendly cow mascot named "Moo" who guides users through the pla
 
 ### Evaluation Pipeline
 
-#### Component Specifications
+The evaluation pipeline is the core of the MOOJ platform, responsible for analyzing mathematical proofs and providing detailed feedback. It processes submissions, identifies errors, generates evaluations, and handles appeals.
+
+For comprehensive details about the evaluation pipeline, including components, data flow, object schemas, and implementation guidelines, refer to the dedicated [Evaluation Pipeline](evaluation-pipeline.md) document.
+
+#### Key Components
 
 - `image_to_LaTeX`: Converts image submissions to LaTeX format
-  - Input: Image file (JPG, PNG)
-  - Output: LaTeX representation of mathematical content
-  - Technology: OCR with mathematical notation recognition
-  - Error handling for poor image quality
-
-- `find_all_errors`: Identifies all errors in a submitted proof
-  - Input: LaTeX solution, problem statement
-  - Output: Array of errors with type and location
-  - Error types: Logical, mathematical, syntactical
-  - Context-aware error detection
-
+- `find_all_errors`: Identifies errors in a submitted proof
 - `evaluate_solution`: Assigns score and generates feedback based on errors
-  - Input: Errors list, solution, problem statement
-  - Output: Numerical score and structured feedback
-  - Scoring algorithm: Weighted by error severity and type
-  - Feedback: Constructive guidance on each error
-
-- `return_evaluation`: Orchestrates the entire evaluation process
-  - Handles initial evaluation and appeals process
-  - Manages re-evaluation with user justifications
-  - Provides final score and comprehensive feedback
+- `return_evaluation`: Orchestrates the initial evaluation process
+- `process_appeals`: Handles appeal processing in a separate step
 
 #### Appeal System Flow
 
-1. User receives initial evaluation with errors identified
-2. User selects specific errors to appeal
-3. User provides justifications for each appealed error
-4. System automatically re-evaluates the submission considering the appeals
-5. Updated score and feedback are presented to the user
-6. Process can repeat until all errors are appealed or max appeal limit is reached
+The appeal system follows a two-phase approach:
+1. Initial evaluation of a user's submission
+2. Separate appeal processing for contested errors
 
-#### Error Handling Requirements
-
-- All API calls must have configurable timeouts (default: 30s for image processing, 15s for LLM calls)
-- Implement automatic retry mechanism for transient failures (max 3 retries with exponential backoff)
-- Provide graceful degradation paths when services are unavailable
-- Present clear error messages to users when processing fails
-- Log comprehensive error information for debugging
-- Generate real-time alerts for critical failures
-
-#### Parallelization Requirements
-
-- Process multiple images in a single submission concurrently
-- Analyze different parts of a proof in parallel where possible
-- Batch similar operations across multiple submissions
-- Implement a worker queue system for distributing processing load
+See the [Evaluation Pipeline](evaluation-pipeline.md) document for the complete flow and implementation details.
 
 ### User Interface Requirements
 
