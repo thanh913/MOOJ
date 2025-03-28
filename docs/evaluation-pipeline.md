@@ -23,33 +23,21 @@ The evaluation pipeline analyzes mathematical proofs, identifies errors, and pro
 
 ### 3.1 Evaluation Loop
 
-The process works as an interactive loop:
+The evaluation process follows a simple iterative approach:
 
-```
-┌────────────┐
-│ Submission │
-└─────┬──────┘
-      │
-      ▼
-┌─────────────────┐
-│Process Evaluation│◀────────────┐
-└────────┬────────┘             │
-         │                      │
-         ▼                      │
-┌────────────────┐      ┌───────────────┐
-│Display Feedback │      │ User Appeals? │
-└────────┬───────┘      └───────┬───────┘
-         │                      │ yes
-         ▼                      │
- ┌──────────────┐               │
- │ User Appeals? │───yes────────┘
- └──────┬───────┘
-        │ no
-        ▼
- ┌──────────────┐
- │    Done      │
- └──────────────┘
-```
+1. **Initial Submission**: Process the user's submission (convert image to LaTeX if needed)
+2. **Error Detection**: Analyze the solution and identify errors
+3. **Evaluation**: Generate score and feedback based on errors
+4. **User Decision Point**: Present results to the user who can:
+   - Accept the evaluation and end the process
+   - Submit appeals for specific errors and continue the loop
+5. **Appeal Processing**: If appeals submitted, validate them and update errors
+6. **Loop Exit Conditions**: The process ends when either:
+   - User accepts the evaluation (no more appeals)
+   - Maximum appeal limit is reached
+   - No appealable errors remain
+
+This approach handles the entire evaluation lifecycle in a single function call with an internal loop that continues until completion.
 
 ### 3.2 Unified Function
 
