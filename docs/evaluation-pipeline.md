@@ -27,20 +27,23 @@ The evaluation process follows a loop-based approach:
 
 ```mermaid
 flowchart TD
-    A[Initial Submission] --> B[Convert Image to LaTeX\nif needed]
+    A[Initial Submission] --> B[Convert Image to LaTeX]
     B --> C[Detect Solution Errors]
     C --> D[Generate Score & Feedback]
     D --> E[Present to User]
-    E --> F{User wants to\nsubmit appeals?}
+    E --> F{Appeal?}
     F -->|No| G[Return Final Evaluation]
-    F -->|Yes| H[Process User Appeals]
-    H --> I[Update Error Statuses]
-    I --> J{Appeals remain &\nAppealable errors exist?}
+    F -->|Yes| H[Process Appeals]
+    H --> I[Update Errors]
+    I --> J{Continue?}
     J -->|Yes| D
     J -->|No| G
+    
+    classDef decision fill:#f9f,stroke:#333,stroke-width:2px;
+    class F,J decision;
 ```
 
-This approach handles the entire evaluation lifecycle in a single function call with an internal loop that continues until completion.
+This approach handles the entire evaluation lifecycle in a single function call with an internal loop that continues until the user accepts the evaluation or no more appeals are possible.
 
 ### 3.2 Unified Function
 
