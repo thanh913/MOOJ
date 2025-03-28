@@ -121,25 +121,24 @@ MOOJ features a friendly cow mascot named "Moo" who guides users through the pla
 
 ### Evaluation Pipeline
 
-The evaluation pipeline is the core of the MOOJ platform, responsible for analyzing mathematical proofs and providing detailed feedback. It processes submissions, identifies errors, generates evaluations, and handles appeals.
-
-For comprehensive details about the evaluation pipeline, including components, data flow, object schemas, and implementation guidelines, refer to the dedicated [Evaluation Pipeline](evaluation-pipeline.md) document.
+The evaluation pipeline analyzes mathematical proofs and provides feedback using a single unified function in a loop pattern. For complete details, see the [Evaluation Pipeline](evaluation-pipeline.md) document.
 
 #### Key Components
 
-- `image_to_LaTeX`: Converts image submissions to LaTeX format
-- `find_all_errors`: Identifies errors in a submitted proof
-- `evaluate_solution`: Assigns score and generates feedback based on errors
-- `return_evaluation`: Orchestrates the initial evaluation process
-- `process_appeals`: Handles appeal processing in a separate step
+- `image_to_LaTeX`: Converts image submissions to LaTeX
+- `find_all_errors`: Identifies errors in proofs
+- `process_evaluation`: Unified function that handles initial evaluation and appeals in a loop
 
-#### Appeal System Flow
+#### Evaluation Flow
 
-The appeal system follows a two-phase approach:
-1. Initial evaluation of a user's submission
-2. Separate appeal processing for contested errors
+```
+do {
+    evaluate and output errors
+    if user chooses not to appeal, break
+} while (appeal_count < max_appeals)
+```
 
-See the [Evaluation Pipeline](evaluation-pipeline.md) document for the complete flow and implementation details.
+This iterative approach processes appeals within the same function call until either the user is satisfied or the maximum appeal limit is reached.
 
 ### User Interface Requirements
 

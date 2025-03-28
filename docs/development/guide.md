@@ -67,7 +67,7 @@ When implementing features, follow these priorities:
 - **Modular Evaluation Pipeline**:
   - `image_to_LaTeX`: Image conversion module
   - `find_all_errors`: Error detection module
-  - `return_evaluation`: Evaluation and feedback generation
+  - `process_evaluation`: Unified evaluation function with appeals loop
 
 - **Backend Processing**: All mathematical processing must happen on the backend
 
@@ -135,17 +135,21 @@ When implementing features, follow these priorities:
 
 ## 5. Evaluation Pipeline Implementation
 
-The evaluation pipeline is implemented as a modular system with separate components for image conversion, error detection, evaluation, and appeal processing. For comprehensive details including function specifications, data flow, schemas, and implementation guidelines, refer to the dedicated [Evaluation Pipeline](../evaluation-pipeline.md) document.
-
-The current implementation uses placeholder functions that will be replaced with full LLM-powered implementation in Phase 3. When implementing the complete pipeline, follow the specifications, error handling, and parallelization guidelines in the Evaluation Pipeline document.
+The evaluation pipeline uses an iterative approach with a single unified function. See the comprehensive [Evaluation Pipeline](../evaluation-pipeline.md) document for details.
 
 ### 5.1 Component Overview
 
-- `image_to_LaTeX`: Converts image submissions to LaTeX format
-- `find_all_errors`: Identifies errors in a submitted proof
-- `evaluate_solution`: Assigns score and generates feedback based on errors
-- `return_evaluation`: Orchestrates the initial evaluation process
-- `process_appeals`: Handles appeal processing in a separate step
+- `image_to_LaTeX`: Converts images to LaTeX
+- `find_all_errors`: Identifies proof errors
+- `process_evaluation`: Unified function with appeals loop
+
+The `process_evaluation` function uses an interactive loop approach:
+```
+do {
+    evaluate and output errors
+    if user chooses not to appeal, break
+} while (appeal_count < max_appeals)
+```
 
 ### 5.2 Implementation Priority
 
