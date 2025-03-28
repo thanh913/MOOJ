@@ -38,9 +38,6 @@ flowchart TD
     I --> J{Continue?}
     J -->|Yes| D
     J -->|No| G
-    
-    classDef decision fill:#f9f,stroke:#333,stroke-width:2px;
-    class F,J decision;
 ```
 
 This approach handles the entire evaluation lifecycle in a single function call with an internal loop that continues until the user accepts the evaluation or no more appeals are possible.
