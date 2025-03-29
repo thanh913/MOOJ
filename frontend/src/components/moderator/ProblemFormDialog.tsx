@@ -23,6 +23,7 @@ import { Formik, Form, Field, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { Problem, ProblemCreate, ProblemUpdate } from '../../types/problem';
 import { useCreateProblemMutation, useUpdateProblemMutation } from '../../store/apis/problemsApi';
+import LaTeXEditor from '../math/LaTeXEditor';
 
 // TODO: Define available topics (potentially fetch from backend later)
 const availableTopics = ['Algebra', 'Calculus', 'Geometry', 'Number Theory', 'Combinatorics', 'Logic'];
@@ -120,24 +121,20 @@ const ProblemFormDialog: React.FC<ProblemFormDialogProps> = ({ open, onClose, pr
                 helperText={touched.title && errors.title}
                 disabled={isLoading}
               />
-              <TextField
-                margin="dense"
-                id="statement"
-                name="statement"
-                label="Problem Statement (Markdown/LaTeX supported)"
-                type="text"
-                fullWidth
-                multiline
-                rows={10}
-                variant="outlined"
-                value={values.statement}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                error={touched.statement && Boolean(errors.statement)}
-                helperText={touched.statement && errors.statement}
-                disabled={isLoading}
-                // TODO: Add LaTeX preview or editor integration later
-              />
+              
+              {/* Replace TextField with LaTeX Editor */}
+              <Box sx={{ my: 2 }}>
+                <LaTeXEditor
+                  label="Problem Statement (Markdown/LaTeX supported)"
+                  value={values.statement}
+                  onChange={(newValue) => setFieldValue('statement', newValue)}
+                  error={touched.statement && Boolean(errors.statement)}
+                  helperText={touched.statement ? errors.statement : undefined}
+                  disabled={isLoading}
+                  rows={10}
+                />
+              </Box>
+              
               <TextField
                 margin="dense"
                 id="difficulty"

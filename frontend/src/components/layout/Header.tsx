@@ -96,7 +96,60 @@ const Header: React.FC = () => {
             <ListItemText primary={item.text} />
           </ListItem>
         ))}
+        
+        {/* Add moderator dashboard link for mobile if user has appropriate role */}
+        {currentUser?.role && [UserRole.Moderator, UserRole.Admin].includes(currentUser.role) && (
+          <ListItem 
+            component={Link} 
+            to="/moderator/problems"
+            sx={{ 
+              textAlign: 'center',
+              color: location.pathname.startsWith('/moderator') ? 'primary.main' : 'text.primary',
+              bgcolor: location.pathname.startsWith('/moderator') ? 'rgba(63, 81, 181, 0.08)' : 'transparent',
+            }}
+          >
+            <ListItemText primary="Moderator Dashboard" />
+          </ListItem>
+        )}
       </List>
+      
+      {/* Add auth buttons to mobile drawer */}
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        {isAuthenticated ? (
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            fullWidth 
+            onClick={handleLogout}
+            sx={{ mt: 1 }}
+          >
+            Logout
+          </Button>
+        ) : (
+          <>
+            <Button 
+              component={Link} 
+              to="/login" 
+              variant="contained" 
+              color="primary" 
+              fullWidth
+              sx={{ mb: 1 }}
+            >
+              Login
+            </Button>
+            <Button 
+              component={Link} 
+              to="/register" 
+              variant="outlined" 
+              color="primary" 
+              fullWidth
+            >
+              Sign Up
+            </Button>
+          </>
+        )}
+      </Box>
     </Box>
   );
   
@@ -176,9 +229,27 @@ const Header: React.FC = () => {
               <Box sx={{ flexGrow: 0 }}>
                 {isAuthenticated ? (
                   <>
-                    <IconButton onClick={handleUserMenu} sx={{ p: 0 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>U</Avatar>
-                    </IconButton>
+                    <Button
+                      onClick={handleUserMenu}
+                      sx={{ 
+                        color: 'text.primary', 
+                        textTransform: 'none' 
+                      }}
+                      startIcon={
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: 'primary.main',
+                            width: 32,
+                            height: 32,
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+                        </Avatar>
+                      }
+                    >
+                      {currentUser?.username || 'User'}
+                    </Button>
                     <Menu
                       sx={{ mt: '45px' }}
                       anchorEl={userMenuAnchor}
@@ -194,6 +265,18 @@ const Header: React.FC = () => {
                       open={Boolean(userMenuAnchor)}
                       onClose={handleCloseUserMenu}
                     >
+                      <Box sx={{ px: 2, py: 1, bgcolor: 'background.default' }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Signed in as
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold">
+                          {currentUser?.username || 'User'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {currentUser?.role || 'User'}
+                        </Typography>
+                      </Box>
+                      <Divider />
                       <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
                         <Typography textAlign="center">Profile</Typography>
                       </MenuItem>

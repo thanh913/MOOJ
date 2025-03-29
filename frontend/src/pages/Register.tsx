@@ -12,10 +12,15 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Person, Google } from '@mui/icons-material';
 import { getGoogleOAuthUrl } from '../services/api';
 import { useRegisterMutation } from '../store/apis/authApi';
+import { UserRole } from '../types/user';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +30,7 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<UserRole>(UserRole.User);
   const [showPassword, setShowPassword] = useState(false);
   
   // RTK Query Mutation Hook
@@ -66,7 +72,7 @@ const Register: React.FC = () => {
     
     try {
       // Call the register mutation
-      await register({ username, email, password }).unwrap();
+      await register({ username, email, password, role }).unwrap();
       // On success, isSuccess becomes true, handled by useEffect or UI conditional rendering
       // No need to manually navigate or set tokens here
     } catch (err: any) {
@@ -208,6 +214,25 @@ const Register: React.FC = () => {
               }}
               disabled={isLoading || isSuccess}
             />
+            
+            {/* Add role selection for testing purposes */}
+            <FormControl fullWidth margin="normal" disabled={isLoading || isSuccess}>
+              <InputLabel id="role-select-label">Role (For Testing)</InputLabel>
+              <Select
+                labelId="role-select-label"
+                id="role-select"
+                value={role}
+                label="Role (For Testing)"
+                onChange={(e) => setRole(e.target.value as UserRole)}
+              >
+                <MenuItem value={UserRole.User}>User</MenuItem>
+                <MenuItem value={UserRole.Moderator}>Moderator</MenuItem>
+                <MenuItem value={UserRole.Admin}>Admin</MenuItem>
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                Note: In production, all users would register as regular users by default.
+              </Typography>
+            </FormControl>
             
             <Button
               type="submit"
