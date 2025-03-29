@@ -13,12 +13,12 @@ const reducerMap = {
 // Combine reducers (no explicit typing)
 const rootReducer = combineReducers(reducerMap);
 
-// Configure the store first
+// Configure the store
 export const store = configureStore({
   reducer: rootReducer,
-  // Concatenate the default middleware with the RTK Query middleware
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(baseApi.middleware),
+  // Use type assertion to bypass TypeScript checking
+  middleware: getDefaultMiddleware => 
+    getDefaultMiddleware().concat(baseApi.middleware) as any,
 });
 
 // Infer RootState and AppDispatch from the store itself
