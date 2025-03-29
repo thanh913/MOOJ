@@ -3,13 +3,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, CssBaseline, Container } from '@mui/material';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import ProblemList from './pages/ProblemList';
 import ProblemDetail from './pages/ProblemDetail';
 import SubmissionDetail from './pages/SubmissionDetail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import OAuthCallback from './pages/OAuthCallback';
+import ModeratorProblemDashboard from './pages/ModeratorProblemDashboard';
 import theme from './theme';
+import { UserRole } from './types/user';
 
 // Import components here when implemented
 // import Home from './pages/Home';
@@ -31,6 +34,9 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/oauth/callback" element={<OAuthCallback />} />
+              <Route element={<ProtectedRoute allowedRoles={[UserRole.Moderator, UserRole.Admin]} />}>
+                <Route path="/moderator/problems" element={<ModeratorProblemDashboard />} />
+              </Route>
               <Route path="*" element={
                 <div style={{ textAlign: 'center', marginTop: '5rem' }}>
                   <span role="img" aria-label="lost cow" style={{ fontSize: '3rem', marginBottom: '1rem', display: 'block' }}>

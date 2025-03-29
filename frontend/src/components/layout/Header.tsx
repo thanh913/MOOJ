@@ -35,8 +35,10 @@ const Header: React.FC = () => {
   // User menu state
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   
-  // Mock authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // For testing, set isAuthenticated to true
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  // Mock user role (should come from auth state in real implementation)
+  const userIsModerator = true; // Placeholder for testing
   
   // Navigation items
   const navItems = [
@@ -193,6 +195,14 @@ const Header: React.FC = () => {
                       <MenuItem onClick={handleCloseUserMenu}>
                         <Typography textAlign="center">My Submissions</Typography>
                       </MenuItem>
+                      {userIsModerator && (
+                        <MenuItem onClick={() => {
+                          handleCloseUserMenu();
+                          navigate('/moderator/problems');
+                        }}>
+                          <Typography textAlign="center">Moderator Dashboard</Typography>
+                        </MenuItem>
+                      )}
                       <MenuItem onClick={() => {
                         handleCloseUserMenu();
                         toggleAuth();
