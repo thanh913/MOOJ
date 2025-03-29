@@ -76,6 +76,7 @@ MOOJ features a friendly cow mascot named "Moo" who guides users through the pla
   - Email/password (JWT-based)
   - Google OAuth integration
   - Session management with refresh tokens
+  - *Note: Frontend integration testing for the authentication flow (`AuthFlow.test.tsx`) is currently facing challenges, specifically with finding elements after logout/login sequences. See Known Issues in `development/guide.md`.*
 - **Access Control**:
   - Role-based permissions
   - Resource ownership validation

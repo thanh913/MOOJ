@@ -68,8 +68,8 @@ When implementing features, always check the current phase and prioritize steps 
    - OAuth flow implementation
    - *Ref: See User System section in [Technical Specification](technical-specification.md)*
 
-8. Improved problem management
-   - Moderator dashboard
+8. Improved problem management - In Progress
+   - Moderator dashboard - Done (Backend API, Frontend basic list/form dialog)
    - LaTeX editor
    - Problem categorization
    - Publishing workflow
@@ -163,6 +163,7 @@ When implementing features, always check the current phase and prioritize steps 
     - E2E user workflows
     - Performance and security
     - Load testing with simulated users
+    - *Note: Frontend integration tests (e.g., `AuthFlow.test.tsx`) are currently experiencing failures related to asynchronous behavior and element finding after complex interactions like logout/login. Requires further investigation.* 
     - *Ref: See Technical Standards in [Development Guide](development/guide.md)*
 
 17. Performance optimization

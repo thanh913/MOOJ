@@ -36,15 +36,24 @@ This guide contains the development standards, workflow guidelines, and progress
 - Initial deployment
 - Enhanced problem interface
 - Advanced authentication
+- Improved problem management (Moderator dashboard backend + initial frontend)
 
 **In Progress:**
-- None
+- Frontend Integration Testing: Debugging `AuthFlow.test.tsx` (currently paused).
+- Improved problem management (Tasks below remain)
+
+**Known Issues:**
+- `frontend/src/tests/AuthFlow.test.tsx`: This integration test is consistently failing during the login step after a logout. The issue seems related to asynchronous rendering or state updates, making it difficult to reliably find form elements. Debugging is currently paused to focus on documentation updates.
+- Frontend Linter Error: A TypeScript type error exists in `frontend/src/store/index.ts` related to middleware configuration. This needs investigation.
 
 **Next Steps:**
-- Improved problem management
-  - Priority: Moderator dashboard for problem creation and management
-  - Focus on LaTeX editor integration for math formulas
-  - Implement publishing workflow with draft/published states
+- Address frontend linter error in `store/index.ts`.
+- Resume debugging `AuthFlow.test.tsx`.
+- Improved problem management (Continued)
+  - Implement LaTeX editor integration
+  - Implement publishing workflow (draft/published states)
+  - Finalize moderator dashboard UI (delete confirmation, etc.)
+  - Implement problem categorization
 
 ## 2. Implementation Priorities
 
@@ -100,8 +109,9 @@ When implementing features, follow these priorities:
 - **Coverage Requirements**:
   - Core evaluation logic: 80% coverage
   - LLM interactions: Mock tests with known samples
-  - Authentication: Complete coverage
+  - Authentication: Complete coverage (Note: Integration test `AuthFlow.test.tsx` currently failing)
   - Database operations: Test all repository methods
+- **Frontend Integration Tests**: Currently facing challenges with asynchronous behavior in React Testing Library, particularly in complex flows like authentication (See Known Issues).
 
 - **Database Testing**:
   - Use in-memory SQLite database for tests
@@ -168,56 +178,3 @@ Refer to [Implementation Plan](../implementation-plan.md) for the sequence of ev
 The MOOJ project uses pytest for backend testing. The tests are organized in the `backend/tests` directory with the following structure:
 
 ```
-backend/tests/
-├── api/          # API endpoint tests
-├── core/         # Core functionality tests
-├── crud/         # CRUD operation tests
-├── db/           # Database tests
-├── evaluation/   # Evaluation pipeline tests
-├── utils/        # Test utilities
-└── conftest.py   # Test fixtures and configuration
-```
-
-To run the backend tests:
-
-1. Using the test script:
-
-   **Windows (PowerShell)**:
-   ```powershell
-   .\scripts\run_backend_tests.ps1
-   ```
-
-   **Unix (Bash)**:
-   ```bash
-   ./scripts/run_backend_tests.sh
-   ```
-
-2. Manually from the backend directory:
-
-   ```bash
-   cd backend
-   python -m pytest
-   ```
-
-3. To run specific tests or test modules:
-
-   ```bash
-   # Run a specific test module
-   .\scripts\run_backend_tests.ps1 tests/api/test_ping.py
-
-   # Run tests with specific markers
-   .\scripts\run_backend_tests.ps1 -m "api"
-
-   # Run tests with specific name pattern
-   .\scripts\run_backend_tests.ps1 -k "test_ping"
-   ```
-
-4. To generate a coverage report:
-
-   ```bash
-   .\scripts\run_backend_tests.ps1 --cov=app tests/ --cov-report=html
-   ```
-
-### 6.2 Frontend Tests
-
-// ... existing code ... 
