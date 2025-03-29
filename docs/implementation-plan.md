@@ -66,13 +66,17 @@ When implementing features, always check the current phase and prioritize steps 
    - Google OAuth integration
    - Comprehensive permissions
    - OAuth flow implementation
+   - RTK Query setup for auth API
    - *Ref: See User System section in [Technical Specification](technical-specification.md)*
 
 8. Improved problem management - In Progress
-   - Moderator dashboard - Done (Backend API, Frontend basic list/form dialog)
-   - LaTeX editor
-   - Problem categorization
-   - Publishing workflow
+   - Moderator dashboard - Backend API/CRUD Done, Frontend basic list/form dialog Done
+   - Problem Models/Schemas/CRUD - Done
+   - Problem API Endpoints - Done
+   - Frontend moderator UI (finalization) - To Do
+   - LaTeX editor - To Do
+   - Problem categorization - To Do
+   - Publishing workflow - To Do
    - *Ref: See Problem Management section in [Technical Specification](technical-specification.md)*
 
 9. Enhanced problem interface - Done

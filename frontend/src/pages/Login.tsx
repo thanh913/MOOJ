@@ -85,6 +85,7 @@ const Login: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              inputProps={{ 'data-testid': 'email-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -103,6 +104,7 @@ const Login: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              inputProps={{ 'data-testid': 'password-input' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">

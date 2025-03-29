@@ -1,11 +1,12 @@
 from fastapi import APIRouter
-
-# Example: from .endpoints import auth, problems
+from .endpoints import problems, auth
 
 api_router = APIRouter()
 
-# Example: api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
-# Example: api_router.include_router(problems.router, prefix="/problems", tags=["problems"])
+# Include problem endpoints
+api_router.include_router(problems.router, prefix="/problems", tags=["problems"])
+# Include auth endpoints
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 @api_router.get("/ping", tags=["test"])
 async def ping():

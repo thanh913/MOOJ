@@ -11,9 +11,11 @@ import {
   InputAdornment,
   IconButton,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Person, Google } from '@mui/icons-material';
-import { register, getGoogleOAuthUrl } from '../services/api';
+import { getGoogleOAuthUrl } from '../services/api';
+import { useRegisterMutation } from '../store/apis/authApi';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -24,8 +26,11 @@ const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  
+  // RTK Query Mutation Hook
+  const [register, { isLoading, error, isSuccess }] = useRegisterMutation();
+  const [apiError, setApiError] = useState<string | null>(null); // Separate state for API errors
+  const [validationError, setValidationError] = useState<string | null>(null); // State for validation errors
   
   // Form validation
   const validateForm = (): { valid: boolean; message?: string } => {
@@ -51,26 +56,24 @@ const Register: React.FC = () => {
     // Validate form
     const validation = validateForm();
     if (!validation.valid) {
-      setError(validation.message || 'Validation error');
+      setValidationError(validation.message || 'Validation error');
+      setApiError(null); // Clear API error on new validation error
       return;
     }
     
-    setIsLoading(true);
-    setError(null);
+    setValidationError(null); // Clear validation error if validation passes
+    setApiError(null); // Clear previous API error
     
     try {
-      const result = await register({ username, email, password });
-      
-      // Store auth data
-      localStorage.setItem('token', result.token);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      
-      // Redirect to home
-      navigate('/');
+      // Call the register mutation
+      await register({ username, email, password }).unwrap();
+      // On success, isSuccess becomes true, handled by useEffect or UI conditional rendering
+      // No need to manually navigate or set tokens here
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      // Set API error based on the error from the hook
+      const errorDetail = err?.data?.detail || 'Registration failed. Please try again.';
+      setApiError(errorDetail);
+      console.error('Registration failed:', err);
     }
   };
   
@@ -95,14 +98,28 @@ const Register: React.FC = () => {
           </Box>
           
           {/* Error message */}
-          {error && (
+          {validationError && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              {validationError}
+            </Alert>
+          )}
+          {apiError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+              {apiError}
+            </Alert>
+          )}
+          {isSuccess && (
+            <Alert severity="success" sx={{ mb: 3 }} data-testid="success-alert">
+              Registration successful! You can now {' '}
+              <Link to="/login" style={{ fontWeight: 'bold' }}>
+                sign in
+              </Link>
+              .
             </Alert>
           )}
           
           {/* Registration form */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               fullWidth
               label="Username"
@@ -118,6 +135,7 @@ const Register: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
+              disabled={isLoading || isSuccess}
             />
             
             <TextField
@@ -127,6 +145,7 @@ const Register: React.FC = () => {
               margin="normal"
               type="email"
               value={email}
+              inputProps={{ 'data-testid': 'email-input' }}
               onChange={(e) => setEmail(e.target.value)}
               required
               InputProps={{
@@ -136,6 +155,7 @@ const Register: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
+              disabled={isLoading || isSuccess}
             />
             
             <TextField
@@ -145,6 +165,7 @@ const Register: React.FC = () => {
               margin="normal"
               type={showPassword ? 'text' : 'password'}
               value={password}
+              inputProps={{ 'data-testid': 'password-input' }}
               onChange={(e) => setPassword(e.target.value)}
               required
               InputProps={{
@@ -165,6 +186,7 @@ const Register: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
+              disabled={isLoading || isSuccess}
             />
             
             <TextField
@@ -174,6 +196,7 @@ const Register: React.FC = () => {
               margin="normal"
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
+              inputProps={{ 'data-testid': 'confirm-password-input' }}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               InputProps={{
@@ -183,6 +206,7 @@ const Register: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
+              disabled={isLoading || isSuccess}
             />
             
             <Button
@@ -192,9 +216,9 @@ const Register: React.FC = () => {
               color="primary"
               size="large"
               sx={{ mt: 3, mb: 2 }}
-              disabled={isLoading}
+              disabled={isLoading || isSuccess}
             >
-              {isLoading ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? <CircularProgress size={24} /> : 'Create Account'}
             </Button>
           </form>
           
@@ -208,7 +232,7 @@ const Register: React.FC = () => {
             size="large"
             startIcon={<Google />}
             onClick={handleGoogleLogin}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, mt: 1 }}
             disabled={isLoading}
           >
             Sign up with Google

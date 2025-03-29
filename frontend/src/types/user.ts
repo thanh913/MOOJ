@@ -15,4 +15,10 @@ export interface User {
     last_login?: string | null;
 }
 
-// Optional: Add types for UserCreate, UserUpdate if needed for frontend forms 
+// Optional: Add types for UserCreate, UserUpdate if needed for frontend forms
+export interface UserCreate {
+    username: string;
+    email: string;
+    password: string;
+    role?: UserRole; // Role might be optional on creation, defaulting on backend
+} 

@@ -1,17 +1,24 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query/react';
 // Import your reducers here when you create them
-// import authReducer from './slices/authSlice';
+import authReducer from './slices/authSlice';
 import { baseApi } from './api'; // Import the api slice
 
+// Define the reducer map
+const reducerMap = {
+  auth: authReducer,
+  [baseApi.reducerPath]: baseApi.reducer,
+};
+
+// Combine reducers
+const rootReducer = combineReducers(reducerMap);
+
+// Infer RootState from the rootReducer *before* creating the store
+export type RootState = ReturnType<typeof rootReducer>;
+
 export const store = configureStore({
-  reducer: {
-    // Add reducers here
-    // auth: authReducer,
-    [baseApi.reducerPath]: baseApi.reducer, // Add the api reducer
-  },
-  // Adding the api middleware enables caching, invalidation, polling,
-  // and other useful features of `rtk-query`.
+  reducer: rootReducer,
+  // Keep middleware simple, rely on inference
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),
 });
@@ -20,7 +27,5 @@ export const store = configureStore({
 // see `setupListeners` docs - takes an optional callback as the 2nd arg for customization
 setupListeners(store.dispatch);
 
-// Infer the `RootState` and `AppDispatch` types from the store itself
-export type RootState = ReturnType<typeof store.getState>;
-// Inferred type: {posts: PostsState, comments: CommentsState, users: UsersState}
+// Infer AppDispatch
 export type AppDispatch = typeof store.dispatch; 

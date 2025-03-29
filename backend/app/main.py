@@ -5,8 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 # Use the centralized settings from core.config
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.db.base import Base
+from app.db.base_class import Base
 from app.db.session import engine
+# Import models to register them with SQLAlchemy
+from app.db.models import User, Problem
 # Assuming env_validator is moved or its logic integrated elsewhere (e.g., in config)
 # from app.core.env_validator import validate_env # Remove or update path if moved
 

@@ -3,16 +3,16 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store'; // Assuming RootState includes auth state
 import { UserRole } from '../../types/user';
+import { selectIsAuthenticated, selectCurrentUser } from '../../store/slices/authSlice';
+import { CircularProgress, Box } from '@mui/material'; // For loading state
 
 interface ProtectedRouteProps {
   allowedRoles: UserRole[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  // TODO: Replace this with actual auth state from Redux when implemented
-  // const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-  const isAuthenticated = true; // Placeholder: Assume user is logged in
-  const user = { role: UserRole.Moderator }; // Placeholder: Assume user is Moderator
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
 
   if (!isAuthenticated) {
     // Redirect to login page if not authenticated

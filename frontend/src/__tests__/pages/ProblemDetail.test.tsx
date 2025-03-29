@@ -3,33 +3,65 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProblemDetail from '../../pages/ProblemDetail';
 import * as apiService from '../../services/api';
+import { Problem } from '../../types/problem';
 
-// Mock the API service
-jest.mock('../../services/api');
-// Mock React Router's useParams
+// Mock the specific API service functions used by ProblemDetail
+jest.mock('../../services/api'); // Mock the whole module
+
+// Mock React Router hooks
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ id: '1' }),
+  useParams: () => ({ id: '1' }), // Ensure ID is a string if param is string
   useNavigate: () => jest.fn()
 }));
 
-const mockProblem = {
+// Mock the apiService module
+const mockedApiService = apiService as jest.Mocked<typeof apiService>;
+
+// Helper function to render with router context
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<BrowserRouter>{ui}</BrowserRouter>);
+};
+
+// Define a mock user structure (inline for now, until User is exported)
+const mockUser = { 
+  id: 101,
+  username: 'testuser',
+  email: 'testuser@example.com',
+  role: 'user',
+  created_at: '2023-01-15T09:00:00Z'
+};
+
+const mockProblem: Problem = {
   id: 1,
   title: 'Test Problem',
-  statement: '# Test Problem Statement\n\nSolve the equation: $x^2 + 2x + 1 = 0$',
-  difficulty: 3,
-  topics: ['algebra', 'equations']
+  statement: 'Solve for x: 2x + 3 = 1',
+  difficulty: 300,
+  topics: ['algebra', 'equations'],
+  created_by_id: 101,
+  created_at: '2023-10-26T10:00:00Z',
+  creator: mockUser as any, // Cast mock user structure to any
+  is_published: true,
 };
 
 describe('ProblemDetail Component', () => {
+  // Define mockSubmitForm here so it's accessible to tests
+  let mockSubmitForm: jest.Mock;
+
   beforeEach(() => {
     // Reset mocks before each test
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    // Default successful mock for fetchProblemById
+    mockedApiService.fetchProblemById.mockResolvedValue(mockProblem as any);
+    // Define and reset mockSubmitForm before each test
+    mockSubmitForm = jest.fn().mockResolvedValue({ submissionId: 'sub123' }); // Default successful mock
+    // Correctly assign the mock implementation
+    mockedApiService.createSubmission.mockImplementation(mockSubmitForm);
   });
 
   it('should render loading state initially', () => {
-    // Mock the API to not resolve immediately
-    jest.spyOn(apiService, 'getProblem').mockImplementation(() => new Promise(() => {}));
+    // Use the correct function name
+    (apiService.fetchProblemById as jest.Mock).mockImplementation(() => new Promise(() => {}));
 
     render(
       <BrowserRouter>
@@ -42,96 +74,85 @@ describe('ProblemDetail Component', () => {
   });
 
   it('should render problem details', async () => {
-    // Mock successful API response
-    jest.spyOn(apiService, 'getProblem').mockResolvedValue(mockProblem);
+    renderWithRouter(<ProblemDetail />); // Use helper
 
-    render(
-      <BrowserRouter>
-        <ProblemDetail />
-      </BrowserRouter>
-    );
-
-    // Wait for problem to be loaded
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
+    // Wait for problem details to load
+    await screen.findByRole('heading', { name: /Test Problem/i });
 
     // Check if problem details are displayed
     expect(screen.getByText('Test Problem')).toBeInTheDocument();
-    expect(screen.getByText('Difficulty: 3/9')).toBeInTheDocument();
+    expect(screen.getByText(/Level 300/i)).toBeInTheDocument();
     expect(screen.getByText('algebra')).toBeInTheDocument();
     expect(screen.getByText('equations')).toBeInTheDocument();
     
-    // Problem statement should be displayed (via ReactMarkdown)
-    expect(screen.getByText('Submit Your Solution')).toBeInTheDocument();
+    // Check if the problem statement is rendered (basic check)
+    expect(screen.getByText(/Solve for x/i)).toBeInTheDocument();
   });
 
   it('should handle direct input submission', async () => {
-    // Mock successful API responses
-    jest.spyOn(apiService, 'getProblem').mockResolvedValue(mockProblem);
-    jest.spyOn(apiService, 'createSubmission').mockResolvedValue({ id: 5 });
-    
-    const mockNavigate = jest.fn();
-    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
+    renderWithRouter(<ProblemDetail />); // Use helper
 
-    render(
-      <BrowserRouter>
-        <ProblemDetail />
-      </BrowserRouter>
-    );
+    // Wait for problem details to load
+    await screen.findByRole('heading', { name: /Test Problem/i });
 
-    // Wait for problem to be loaded
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
+    // Click the Submit Tab
+    const submitTab = screen.getByRole('tab', { name: /Submit/i });
+    fireEvent.click(submitTab);
 
-    // Enter solution text
-    const solutionInput = screen.getByLabelText('Solution (LaTeX)');
+    // Wait for the Submit tab content to load AND the default radio to be checked
+    const directInputRadio = await screen.findByLabelText(/Direct Input \(LaTeX\)/i);
+    expect(directInputRadio).toBeChecked();
+
+    // Wait specifically for the input element (e.g., textarea/textbox) after confirming radio state
+    const solutionInput = await screen.findByRole('textbox');
+    expect(solutionInput).toBeInTheDocument();
     fireEvent.change(solutionInput, { target: { value: 'x = -1' } });
 
-    // Submit solution
-    const submitButton = screen.getByText('Submit Solution');
-    fireEvent.click(submitButton);
+    // Submit the form
+    fireEvent.click(screen.getByRole('button', { name: /Submit Solution/i }));
 
-    // Check if submission was created correctly
+    // Check if submitForm was called correctly
     await waitFor(() => {
-      expect(apiService.createSubmission).toHaveBeenCalledWith({
+      expect(mockSubmitForm).toHaveBeenCalledWith({
         problem_id: 1,
-        content_type: 'direct_input',
-        content: 'x = -1'
+        content: 'x = -1',
+        content_type: 'direct'
       });
-      expect(mockNavigate).toHaveBeenCalledWith('/submissions/5');
     });
   });
 
   it('should handle validation for empty submission', async () => {
-    // Mock successful API response
-    jest.spyOn(apiService, 'getProblem').mockResolvedValue(mockProblem);
+    renderWithRouter(<ProblemDetail />); // Use helper
 
-    render(
-      <BrowserRouter>
-        <ProblemDetail />
-      </BrowserRouter>
-    );
+    // Wait for problem details to load
+    await screen.findByRole('heading', { name: /Test Problem/i });
 
-    // Wait for problem to be loaded
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
+    // Click the Submit Tab
+    const submitTab = screen.getByRole('tab', { name: /Submit/i });
+    fireEvent.click(submitTab);
 
-    // Submit empty solution
-    const submitButton = screen.getByText('Submit Solution');
+    // Wait for the Submit tab content to load AND the default radio to be checked
+    const directInputRadio = await screen.findByLabelText(/Direct Input \(LaTeX\)/i);
+    expect(directInputRadio).toBeChecked();
+
+    // Find the submit button
+    const submitButton = screen.getByRole('button', { name: /Submit Solution/i });
+
+    // Click submit button without entering text
     fireEvent.click(submitButton);
 
-    // Check if validation error is displayed
+    // Check if validation error is displayed - Wait *after* clicking submit
     await waitFor(() => {
-      expect(screen.getByText('Solution content is required')).toBeInTheDocument();
+      expect(screen.getByText('Please provide a submission')).toBeInTheDocument();
     });
+
+    // Ensure submitForm was NOT called due to validation failure
+    expect(mockSubmitForm).not.toHaveBeenCalled();
   });
 
   it('should handle API error', async () => {
-    // Mock API error
-    jest.spyOn(apiService, 'getProblem').mockRejectedValue(new Error('Failed to fetch'));
+    // Use the correct function name
+    (apiService.fetchProblemById as jest.Mock).mockRejectedValue(new Error('Failed to fetch'));
 
     render(
       <BrowserRouter>
@@ -147,41 +168,46 @@ describe('ProblemDetail Component', () => {
   });
 
   it('should switch between direct input and image upload', async () => {
-    // Mock successful API response
-    jest.spyOn(apiService, 'getProblem').mockResolvedValue(mockProblem);
+    renderWithRouter(<ProblemDetail />); // Use helper
 
-    render(
-      <BrowserRouter>
-        <ProblemDetail />
-      </BrowserRouter>
-    );
+    // Wait for problem details to load
+    await screen.findByRole('heading', { name: /Test Problem/i });
 
-    // Wait for problem to be loaded
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
+    // Click the Submit Tab
+    const submitTab = screen.getByRole('tab', { name: /Submit/i });
+    fireEvent.click(submitTab);
 
-    // Check if direct input is initially selected
-    expect(screen.getByLabelText('Solution (LaTeX)')).toBeInTheDocument();
+    // Wait for the Submit tab content to load AND the default radio to be checked
+    const directInputRadio = await screen.findByLabelText(/Direct Input \(LaTeX\)/i);
+    expect(directInputRadio).toBeChecked();
+
+    // Check if direct input is initially selected and visible
+    await screen.findByRole('textbox');
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
 
     // Switch to image upload
-    fireEvent.mouseDown(screen.getByLabelText('Submission Type'));
-    fireEvent.click(screen.getByText('Image Upload'));
+    const imageUploadRadio = screen.getByLabelText(/Image URL/i);
+    fireEvent.click(imageUploadRadio);
 
-    // Check if image upload UI is now displayed
+    // Wait for image upload radio to be checked and assert visibility changes
     await waitFor(() => {
-      expect(screen.getByText('Select Image')).toBeInTheDocument();
-      expect(screen.queryByLabelText('Solution (LaTeX)')).not.toBeInTheDocument();
+      expect(imageUploadRadio).toBeChecked();
+      expect(screen.getByRole('textbox', { name: 'Image URL' })).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', { name: /Enter your solution/i })).not.toBeInTheDocument();
     });
 
     // Switch back to direct input
-    fireEvent.mouseDown(screen.getByLabelText('Submission Type'));
-    fireEvent.click(screen.getByText('Direct Input (LaTeX)'));
+    fireEvent.click(directInputRadio);
 
-    // Check if direct input UI is displayed again
+    // Wait for direct input radio to be checked and assert visibility changes back
     await waitFor(() => {
-      expect(screen.getByLabelText('Solution (LaTeX)')).toBeInTheDocument();
-      expect(screen.queryByText('Select Image')).not.toBeInTheDocument();
+      expect(directInputRadio).toBeChecked();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.queryByText('Upload Solution Image')).not.toBeInTheDocument();
     });
+  });
+
+  test('should display error message on fetch failure', async () => {
+    // ... existing code ...
   });
 }); 

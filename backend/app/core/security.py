@@ -4,13 +4,14 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 import os
 from dotenv import load_dotenv
+from app.core.config import settings
 
 load_dotenv()
 
 # JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "insecure-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

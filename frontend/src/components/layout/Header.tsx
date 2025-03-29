@@ -19,15 +19,19 @@ import {
   Divider,
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SchoolIcon from '@mui/icons-material/School';
+import { selectIsAuthenticated, selectCurrentUser, logout } from '../../store/slices/authSlice';
+import { UserRole } from '../../types/user'; // Make sure UserRole is imported
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const dispatch = useDispatch();
   
   // Mobile menu state
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,10 +39,9 @@ const Header: React.FC = () => {
   // User menu state
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   
-  // For testing, set isAuthenticated to true
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  // Mock user role (should come from auth state in real implementation)
-  const userIsModerator = true; // Placeholder for testing
+  // Get auth state from Redux
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectCurrentUser);
   
   // Navigation items
   const navItems = [
@@ -61,9 +64,11 @@ const Header: React.FC = () => {
     setUserMenuAnchor(null);
   };
   
-  // Toggle auth state (for demo purposes)
-  const toggleAuth = () => {
-    setIsAuthenticated(!isAuthenticated);
+  // Handle Logout
+  const handleLogout = () => {
+    dispatch(logout());
+    handleCloseUserMenu();
+    navigate('/'); // Optional: Redirect to home after logout
   };
   
   // Mobile drawer content
@@ -189,13 +194,13 @@ const Header: React.FC = () => {
                       open={Boolean(userMenuAnchor)}
                       onClose={handleCloseUserMenu}
                     >
-                      <MenuItem onClick={handleCloseUserMenu}>
+                      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
                         <Typography textAlign="center">Profile</Typography>
                       </MenuItem>
-                      <MenuItem onClick={handleCloseUserMenu}>
+                      <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/submissions'); }}>
                         <Typography textAlign="center">My Submissions</Typography>
                       </MenuItem>
-                      {userIsModerator && (
+                      {currentUser?.role && [UserRole.Moderator, UserRole.Admin].includes(currentUser.role) && (
                         <MenuItem onClick={() => {
                           handleCloseUserMenu();
                           navigate('/moderator/problems');
@@ -204,8 +209,7 @@ const Header: React.FC = () => {
                         </MenuItem>
                       )}
                       <MenuItem onClick={() => {
-                        handleCloseUserMenu();
-                        toggleAuth();
+                        handleLogout();
                       }}>
                         <Typography textAlign="center">Logout</Typography>
                       </MenuItem>
@@ -213,10 +217,10 @@ const Header: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Button color="primary" variant="outlined" sx={{ mr: 1 }}>
+                    <Button component={Link} to="/register" color="primary" variant="outlined" sx={{ mr: 1 }}>
                       Sign Up
                     </Button>
-                    <Button color="primary" variant="contained" onClick={toggleAuth}>
+                    <Button component={Link} to="/login" color="primary" variant="contained">
                       Login
                     </Button>
                   </>

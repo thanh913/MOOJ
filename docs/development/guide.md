@@ -35,25 +35,22 @@ This guide contains the development standards, workflow guidelines, and progress
 - MVP user interface
 - Initial deployment
 - Enhanced problem interface
-- Advanced authentication
-- Improved problem management (Moderator dashboard backend + initial frontend)
+- Advanced authentication (including RTK Query setup)
+- Improved problem management (Backend API, CRUD, Models for problems & users)
 
 **In Progress:**
-- Frontend Integration Testing: Debugging `AuthFlow.test.tsx` (currently paused).
-- Improved problem management (Tasks below remain)
+- Frontend Integration Testing: Debugging `AuthFlow.test.tsx`.
+- Improved problem management (Frontend UI, LaTeX Editor, Workflow).
+- Resolving Frontend Linter Error in `store/index.ts`.
 
 **Known Issues:**
-- `frontend/src/tests/AuthFlow.test.tsx`: This integration test is consistently failing during the login step after a logout. The issue seems related to asynchronous rendering or state updates, making it difficult to reliably find form elements. Debugging is currently paused to focus on documentation updates.
-- Frontend Linter Error: A TypeScript type error exists in `frontend/src/store/index.ts` related to middleware configuration. This needs investigation.
+- `frontend/src/tests/AuthFlow.test.tsx`: Integration test failing during login after logout, likely due to async state updates/rendering with RTK Query mocks.
+- Frontend Linter Error: TypeScript type error in `frontend/src/store/index.ts` related to middleware configuration and RTK Query setup.
 
 **Next Steps:**
-- Address frontend linter error in `store/index.ts`.
-- Resume debugging `AuthFlow.test.tsx`.
-- Improved problem management (Continued)
-  - Implement LaTeX editor integration
-  - Implement publishing workflow (draft/published states)
-  - Finalize moderator dashboard UI (delete confirmation, etc.)
-  - Implement problem categorization
+- Resolve frontend linter error in `store/index.ts`.
+- Resolve `AuthFlow.test.tsx` failures.
+- Implement Problem Management Frontend (Moderator dashboard UI finalization, LaTeX editor, publishing workflow, categorization).
 
 ## 2. Implementation Priorities
 

@@ -20,35 +20,7 @@ import SortControls, { SortDirection, SortField } from '../components/problems/S
 import ProblemCard from '../components/problems/ProblemCard';
 import EnhancedPagination from '../components/problems/EnhancedPagination';
 import { Problem } from '../models/types';
-
-// Component for showing the Moo mascot when loading
-const MooLoading: React.FC<{ message?: string }> = ({ message = 'Loading problems...' }) => {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', my: 4 }}>
-      <span role="img" aria-label="cow" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-        🐄
-      </span>
-      <CircularProgress size={24} sx={{ mb: 2 }} />
-      <Typography variant="body1" color="text.secondary">
-        {message}
-      </Typography>
-    </Box>
-  );
-};
-
-// Component for showing the Moo mascot when there are no problems
-const MooEmpty: React.FC<{ message?: string }> = ({ message = 'No problems found. Try different filters!' }) => {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', my: 4 }}>
-      <span role="img" aria-label="sad cow" style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-        🐄
-      </span>
-      <Typography variant="body1" color="text.secondary">
-        {message}
-      </Typography>
-    </Box>
-  );
-};
+import { MooLoading, MooEmpty } from '../components/shared/MooComponents';
 
 const ProblemList: React.FC = () => {
   const navigate = useNavigate();
@@ -235,19 +207,22 @@ const ProblemList: React.FC = () => {
         )}
         
         {/* Loading State */}
-        {loading ? (
-          <MooLoading />
-        ) : filteredProblems.length === 0 ? (
+        {loading && <MooLoading />}
+        
+        {/* Empty State */}
+        {!loading && !error && currentProblems.length === 0 && (
           <MooEmpty />
-        ) : (
-          <>
-            {/* Problem Cards */}
-            <Grid container spacing={3}>
+        )}
+        
+        {/* Problem List */}
+        {!loading && !error && currentProblems.length > 0 && (
+          <Box>
+            <Grid container spacing={3} sx={{ mb: 3 }} data-testid="problem-list-container">
               {currentProblems.map((problem) => (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={problem.id}>
                   <ProblemCard
                     problem={problem}
-                    onClick={handleProblemClick}
+                    onClick={() => handleProblemClick(problem.id)}
                   />
                 </Grid>
               ))}
@@ -258,11 +233,10 @@ const ProblemList: React.FC = () => {
               count={filteredProblems.length}
               page={page}
               pageSize={pageSize}
-              loading={loading}
               onPageChange={handlePageChange}
               onPageSizeChange={setPageSize}
             />
-          </>
+          </Box>
         )}
       </Box>
     </Container>

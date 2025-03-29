@@ -46,7 +46,7 @@ export const MooLoading: React.FC<{ message?: string }> = ({ message = 'Loading.
       message={message}
       submessage="Our mathematical cow is working hard!"
     />
-    <CircularProgress size={24} sx={{ mt: 1 }} />
+    <CircularProgress data-testid="main-loader" size={24} sx={{ mt: 1 }} />
   </Box>
 );
 

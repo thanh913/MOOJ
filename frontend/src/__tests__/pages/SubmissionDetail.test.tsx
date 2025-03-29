@@ -1,8 +1,10 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import SubmissionDetail from '../../pages/SubmissionDetail';
 import * as apiService from '../../services/api';
+import userEvent from '@testing-library/user-event';
+import { act } from 'react';
 
 // Mock the API service
 jest.mock('../../services/api');
@@ -14,37 +16,45 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const mockPendingSubmission = {
-  id: 5,
+  id: 123,
   problem_id: 1,
+  user_id: 1,
   content_type: 'direct_input',
-  content: 'x = -1',
-  status: 'pending',
-  submitted_at: '2023-01-01T12:00:00Z'
+  content: 'x = 1',
+  latex_content: 'x = 1',
+  status: 'pending' as const,
+  score: null,
+  feedback: null,
+  submitted_at: new Date().toISOString(),
+  evaluation_started_at: null,
+  evaluation_completed_at: null,
 };
 
 const mockProcessingSubmission = {
   ...mockPendingSubmission,
-  status: 'processing'
+  status: 'processing' as const,
+  evaluation_started_at: new Date().toISOString(),
 };
 
 const mockCompletedSubmission = {
-  ...mockPendingSubmission,
-  status: 'completed',
-  latex_content: 'x = -1',
+  ...mockProcessingSubmission,
+  status: 'completed' as const,
   score: 85,
-  feedback: '# Feedback\n\nYour solution is correct!'
+  feedback: '# Good job!\nSome minor improvements possible.',
+  evaluation_completed_at: new Date().toISOString(),
 };
 
 const mockErrorSubmission = {
-  ...mockPendingSubmission,
-  status: 'error',
-  feedback: 'Error processing submission'
+  ...mockProcessingSubmission,
+  status: 'failed' as const,
+  feedback: 'Evaluation failed due to an internal error.',
+  evaluation_completed_at: new Date().toISOString(),
 };
 
 describe('SubmissionDetail Component', () => {
   beforeEach(() => {
     // Reset mocks and timers before each test
-    jest.resetAllMocks();
+    (apiService.fetchSubmissionById as jest.Mock).mockReset();
     jest.useFakeTimers();
   });
 
@@ -53,25 +63,20 @@ describe('SubmissionDetail Component', () => {
   });
 
   it('should render loading state initially', () => {
-    // Mock the API to not resolve immediately
-    jest.spyOn(apiService, 'getSubmission').mockImplementation(() => new Promise(() => {}));
-
+    (apiService.fetchSubmissionById as jest.Mock).mockImplementation(() => new Promise(() => {}));
     render(
       <BrowserRouter>
         <SubmissionDetail />
       </BrowserRouter>
     );
-
-    // Check for loading indicator
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('should render pending submission with polling', async () => {
-    // Setup mock responses for multiple calls
-    const getSubmissionMock = jest.spyOn(apiService, 'getSubmission')
+    const fetchMock = (apiService.fetchSubmissionById as jest.Mock)
       .mockResolvedValueOnce(mockPendingSubmission)
       .mockResolvedValueOnce(mockProcessingSubmission)
-      .mockResolvedValueOnce(mockCompletedSubmission);
+      .mockResolvedValue(mockCompletedSubmission);
 
     render(
       <BrowserRouter>
@@ -79,40 +84,36 @@ describe('SubmissionDetail Component', () => {
       </BrowserRouter>
     );
 
-    // Wait for initial submission to be loaded
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-      expect(screen.getByText('Status: Pending')).toBeInTheDocument();
-    });
+    // Wait for initial loading to finish by checking for a stable element
+    await screen.findByText(/Submission Time/i);
 
-    // Fast-forward polling interval
+    // Check initial status (could be PENDING or PROCESSING due to fast polling)
+    await screen.findByText(/PENDING|PROCESSING/);
+
+    // Advance timer and wait for 'PROCESSING' within the same act scope
     await act(async () => {
       jest.advanceTimersByTime(3000);
+      // Wait for the status to update to PROCESSING *inside* act
+      await waitFor(() => {
+        expect(screen.getByText('PROCESSING')).toBeInTheDocument(); 
+      });
     });
-
-    // Check if status updated to "Processing"
-    await waitFor(() => {
-      expect(screen.getByText('Status: Processing')).toBeInTheDocument();
-    });
-
-    // Fast-forward polling interval again
+    
+    // Advance timer again and wait for 'COMPLETED' within the same act scope
     await act(async () => {
       jest.advanceTimersByTime(3000);
+       // Wait for the status to update to COMPLETED *inside* act
+      await waitFor(() => {
+        expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+        expect(screen.getByText(/85.*100/)).toBeInTheDocument();
+      });
     });
 
-    // Check if status updated to "Completed" and results are displayed
-    await waitFor(() => {
-      expect(screen.getByText('Status: Completed')).toBeInTheDocument();
-      expect(screen.getByText('Score: 85%')).toBeInTheDocument();
-    });
-
-    // Verify the polling behavior
-    expect(getSubmissionMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('should render completed submission', async () => {
-    // Mock successful API response with completed submission
-    jest.spyOn(apiService, 'getSubmission').mockResolvedValue(mockCompletedSubmission);
+    (apiService.fetchSubmissionById as jest.Mock).mockResolvedValue(mockCompletedSubmission);
 
     render(
       <BrowserRouter>
@@ -120,82 +121,73 @@ describe('SubmissionDetail Component', () => {
       </BrowserRouter>
     );
 
-    // Wait for submission to be loaded
     await waitFor(() => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-      expect(screen.getByText('Status: Completed')).toBeInTheDocument();
+      expect(screen.getByText('COMPLETED')).toBeInTheDocument();
     });
 
-    // Check if submission details are displayed
-    expect(screen.getByText('Your Solution')).toBeInTheDocument();
-    expect(screen.getByText('x = -1')).toBeInTheDocument();
-    expect(screen.getByText('Score: 85%')).toBeInTheDocument();
-    expect(screen.getByText('Feedback:')).toBeInTheDocument();
+    expect(screen.getByText('Your Submission')).toBeInTheDocument();
+    expect(screen.getByAltText('Submitted solution')).toBeInTheDocument();
+    expect(screen.getByText(/85.*100/)).toBeInTheDocument(); 
+    expect(screen.getByText('Feedback')).toBeInTheDocument(); 
     
-    // The submission should have feedback (displayed via ReactMarkdown)
-    expect(screen.getByText('Your solution is correct!')).toBeInTheDocument();
+    // Find the specific feedback container and check its content
+    const feedbackContainer = screen.getByText((content, element) => {
+      // Check if the element is the correct div and contains the start of the feedback
+      return element?.tagName.toLowerCase() === 'div' && 
+             element.classList.contains('MuiTypography-root') &&
+             content.startsWith('# Good job!');
+    });
+    expect(feedbackContainer).toBeInTheDocument();
+    expect(feedbackContainer.textContent).toContain('# Good job!');
+    expect(feedbackContainer.textContent).toContain('Some minor improvements possible.');
   });
 
   it('should render error submission', async () => {
-    // Mock API response with error submission
-    jest.spyOn(apiService, 'getSubmission').mockResolvedValue(mockErrorSubmission);
-
+    (apiService.fetchSubmissionById as jest.Mock).mockResolvedValue(mockErrorSubmission);
     render(
       <BrowserRouter>
         <SubmissionDetail />
       </BrowserRouter>
     );
-
-    // Wait for submission to be loaded
     await waitFor(() => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-      expect(screen.getByText('Status: Error')).toBeInTheDocument();
     });
-
-    // Check if error message is displayed
-    expect(screen.getByText('Error processing submission')).toBeInTheDocument();
+    expect(screen.getByText('FAILED')).toBeInTheDocument(); 
+    expect(screen.getByText('There was an error processing your submission. Please try submitting again.')).toBeInTheDocument();
   });
 
   it('should handle API error', async () => {
-    // Mock API error
-    jest.spyOn(apiService, 'getSubmission').mockRejectedValue(new Error('Failed to fetch'));
-
+    (apiService.fetchSubmissionById as jest.Mock).mockRejectedValue(new Error('Failed to fetch'));
     render(
       <BrowserRouter>
         <SubmissionDetail />
       </BrowserRouter>
     );
-
-    // Wait for error to be displayed
     await waitFor(() => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-      expect(screen.getByText('Failed to load submission details. Please try again later.')).toBeInTheDocument();
+      expect(screen.getByText('Failed to load submission. Please try again later.')).toBeInTheDocument();
     });
   });
 
-  it('should navigate back to problem page', async () => {
-    // Mock successful API response
-    jest.spyOn(apiService, 'getSubmission').mockResolvedValue(mockCompletedSubmission);
+  it('should render back link with correct href', async () => {
+    // No need to mock navigate if just checking href
+    (apiService.fetchSubmissionById as jest.Mock).mockResolvedValue(mockCompletedSubmission);
     
-    const mockNavigate = jest.fn();
-    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
-
     render(
       <BrowserRouter>
         <SubmissionDetail />
       </BrowserRouter>
     );
 
-    // Wait for submission to be loaded
     await waitFor(() => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    // Click back to problem button
-    const backButton = screen.getByText('Back to Problem');
-    fireEvent.click(backButton);
-
-    // Check if navigation to problem page happened
-    expect(mockNavigate).toHaveBeenCalledWith('/problems/1');
+    // Find the back link/button
+    const backLink = screen.getByRole('link', { name: /back to problem/i }); 
+    expect(backLink).toBeInTheDocument();
+    // Check its href attribute
+    expect(backLink).toHaveAttribute('href', '/problems/1'); 
   });
 }); 

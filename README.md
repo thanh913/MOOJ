@@ -99,8 +99,11 @@ Follow the Deployment Guide which contains complete instructions for both local 
 │   ├── src/                 # Source code
 │   │   ├── components/      # UI components
 │   │   ├── pages/           # Page components
-│   │   ├── services/        # API services
-│   │   └── store/           # State management
+│   │   ├── services/        # API services (legacy?)
+│   │   └── store/           # State management (Redux Toolkit + RTK Query)
+│   │       ├── apis/        # RTK Query API definitions
+│   │       ├── slices/      # Redux slices
+│   │       └── index.ts     # Store configuration
 │   └── tests/               # Frontend tests
 ├── docs/                    # Documentation
 ├── scripts/                 # Utility scripts
