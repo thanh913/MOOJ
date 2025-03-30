@@ -1,4 +1,0 @@
-1.  **Reference Architecture**: Always consult `docs/architecture.md` for system design before implementing backend or infrastructure changes.
-2.  **Reference Development Guide**: Refer to `docs/development.md` for coding standards, testing procedures, and component-specific guidelines.
-3.  **Update Documentation**: After significant feature changes or architectural modifications, update the relevant files within the `/docs` directory, ensuring accuracy and conciseness.
-4.  **Keep Docs Concise**: Ensure all documentation is clear, avoids redundancy, and focuses on essential information, particularly the workflow diagrams and steps in `docs/architecture.md`. 

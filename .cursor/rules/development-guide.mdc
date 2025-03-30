@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- Consult `docs/architecture.md` for system design before implementing backend or infrastructure changes.
+- Refer to `docs/development.md` for coding standards, testing procedures, and component-specific guidelines.

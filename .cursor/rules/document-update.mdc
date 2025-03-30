@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- After significant feature changes or architectural modifications, update the relevant files within the `/docs` directory, ensuring accuracy and conciseness.
+- Ensure all documentation is clear, avoids redundancy.
