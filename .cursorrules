@@ -1,33 +1,4 @@
-# MOOJ Rules
-
-## Development
-
-1. Start with Central Documentation: Read development/guide.md first
-2. Implementation Process: Follow implementation-plan.md steps sequentially
-3. Cross-Reference Documentation: Reference guide.md for standards, technical-specification.md for specs
-4. Evaluation System: See evaluation-pipeline.md for complete details on the evaluation flow
-
-## Documentation
-
-### Structure
-- development/guide.md: Workflow, standards, and progress tracking
-- implementation-plan.md: Implementation steps only
-- technical-specification.md: Technical specifications and design
-- evaluation-pipeline.md: Evaluation flow and implementation details
-- deployment-guide.md: Deployment instructions
-
-### Locations
-- /docs/: Main documentation
-- /backend/docs/: Backend documentation
-- /frontend/docs/: Frontend documentation
-
-### Updates
-1. When adding features: Mark implementation-plan.md steps done, update guide.md Progress
-2. When editing docs: Maintain cross-references, use relative links, update anchors
-
-### Standards
-- Use tables of contents and numbered sections
-- Place important information first
-- Be concise, clear, and consistent
-- Review and update documentation alongside code
-- Remove outdated information 
+1.  **Reference Architecture**: Always consult `docs/architecture.md` for system design before implementing backend or infrastructure changes.
+2.  **Reference Development Guide**: Refer to `docs/development.md` for coding standards, testing procedures, and component-specific guidelines.
+3.  **Update Documentation**: After significant feature changes or architectural modifications, update the relevant files within the `/docs` directory, ensuring accuracy and conciseness.
+4.  **Keep Docs Concise**: Ensure all documentation is clear, avoids redundancy, and focuses on essential information, particularly the workflow diagrams and steps in `docs/architecture.md`. 

@@ -2,10 +2,13 @@ FROM node:16-alpine
 
 WORKDIR /app
 
+# Copy package files first for better layer caching
 COPY package.json package-lock.json* ./
 
+# Install all dependencies, including devDependencies
 RUN npm install
 
+# Copy the rest of the app
 COPY . .
 
 # Add healthcheck

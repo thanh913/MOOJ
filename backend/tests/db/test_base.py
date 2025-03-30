@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Create a test model based on the base model pattern
 Base = declarative_base()
@@ -16,6 +17,9 @@ def test_create_model(db):
     """
     Test creating a model and persisting it to the database.
     """
+    # Create the table if it doesn't exist
+    TestModel.__table__.create(bind=db.get_bind(), checkfirst=True)
+    
     # Create a new test model instance
     test_item = TestModel(name="Test Item", description="This is a test item")
     

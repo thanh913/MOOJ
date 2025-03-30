@@ -1,0 +1,7 @@
+pika
+SQLAlchemy
+psycopg2-binary
+python-dotenv # For loading environment variables if needed
+pydantic==2.4.2
+pydantic-settings==2.0.3
+# Add more dependencies as needed for the worker

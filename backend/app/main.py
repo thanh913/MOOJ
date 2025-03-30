@@ -2,33 +2,23 @@ import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Import models *before* anything that might import `app` indirectly (like routers)
+# This ensures the SQLAlchemy Base metadata knows about the models early.
+from app.db import base_class # This imports Base
+from app.db import models # This imports the model definitions
+
 # Use the centralized settings from core.config
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.db.base_class import Base
 from app.db.session import engine
-# Import models to register them with SQLAlchemy
-from app.db.models import User, Problem
-# Assuming env_validator is moved or its logic integrated elsewhere (e.g., in config)
-# from app.core.env_validator import validate_env # Remove or update path if moved
 
-# Validate environment variables (Consider integrating into Settings loading)
-# if 'pytest' not in sys.modules:
-#     validate_env() # Remove or update path if moved
-
-# Create database tables only if not in testing mode
-# Ensure Base is imported correctly and contains your models eventually
-if 'pytest' not in sys.modules:
-    # Make sure your models are imported somewhere before calling create_all
-    # e.g., import app.db.models.user, app.db.models.problem etc.
-    # This is often handled by importing the models into db.base or db.__init__
-    Base.metadata.create_all(bind=engine)
+# No need to call create_all here; handled by test setup/teardown or migrations
 
 # Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     description="Mathematical Online Open Judge API",
-    version="0.1.0", # Consider making version dynamic or part of settings
+    version="0.1.0",
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
@@ -57,6 +47,7 @@ async def health_check():
     return {"status": "healthy"}
 
 # Include the main API router with the configured prefix
+# This import happens *after* models are known to Base
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Add other application setup like event handlers if needed

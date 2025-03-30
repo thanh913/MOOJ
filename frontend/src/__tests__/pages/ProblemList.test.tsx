@@ -1,211 +1,140 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
+import { configureStore } from '@reduxjs/toolkit';
+import { baseApi } from '../../store/api'; // Assuming baseApi setup
 import ProblemList from '../../pages/ProblemList';
-import * as api from '../../services/api';
-import userEvent from '@testing-library/user-event';
-import { within } from '@testing-library/react';
-import { Problem } from '../../models/types';
-import { act } from 'react';
+// Import Problem type from the correct location
+import { Problem } from '../../types/problem'; 
+// Import User type AND UserRole enum
+import { User, UserRole } from '../../types/user'; 
 
-// Mock the api module
-jest.mock('../../services/api');
-const mockedApi = api as jest.Mocked<typeof api>;
-
-// Sample problem data with all required fields
+// Mock data using the correct type and enum
+const mockCreator: User = { 
+  id: 1, username: 'testuser', email: 'test@test.com', role: UserRole.User, created_at: new Date().toISOString() 
+};
 const mockProblems: Problem[] = [
-  {
-    id: 1,
-    title: 'Easy Problem',
-    difficulty: 300,
-    topics: ['Algebra'],
-    statement: 'Solve for x: 2x + 3 = 7',
-    created_at: new Date().toISOString(),
-    created_by: 1,
-    is_published: true,
+  { 
+    id: 1, title: 'Problem Alpha', statement: 'Stmt A', difficulty: 3, topics: ['calculus'], is_published: true, 
+    created_at: '2023-01-01T00:00:00Z', created_by_id: 1, creator: mockCreator 
   },
-  {
-    id: 2,
-    title: 'Hard Problem',
-    difficulty: 800,
-    topics: ['Geometry'],
-    statement: 'Calculate the area of a triangle with vertices...',
-    created_at: new Date().toISOString(),
-    created_by: 1,
-    is_published: true,
-  },
-  {
-    id: 3,
-    title: 'Medium Problem',
-    difficulty: 500,
-    topics: ['Calculus'],
-    statement: 'Find the derivative of f(x) = x^3',
-    created_at: new Date().toISOString(),
-    created_by: 1,
-    is_published: true,
+  { 
+    id: 2, title: 'Problem Beta', statement: 'Stmt B', difficulty: 7, topics: ['algebra'], is_published: true, 
+    created_at: '2023-01-02T00:00:00Z', created_by_id: 1, creator: mockCreator 
   },
 ];
 
-describe('ProblemList Component', () => {
+// Mock RTK Query hook
+jest.mock('../../store/apis/problemsApi', () => ({
+  useGetProblemsQuery: jest.fn(() => ({
+    data: mockProblems,
+    isLoading: false,
+    error: null,
+  })),
+}));
+
+// Mock useNavigate
+const mockedNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  useNavigate: () => mockedNavigate,
+}));
+
+// Helper function to render with providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  const store = configureStore({
+    reducer: {
+      [baseApi.reducerPath]: baseApi.reducer,
+      // Add other reducers if needed
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(baseApi.middleware),
+  });
+  return render(
+    <Provider store={store}>
+      <BrowserRouter>{ui}</BrowserRouter>
+    </Provider>
+  );
+};
+
+describe('<ProblemList />', () => {
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
-    // Default mock implementation - Make it resolve successfully
-    mockedApi.fetchProblems.mockResolvedValue(mockProblems);
+    // Reset mock implementation if needed (e.g., for error/loading states)
+    require('../../store/apis/problemsApi').useGetProblemsQuery.mockImplementation(() => ({
+      data: mockProblems,
+      isLoading: false,
+      error: null,
+    }));
   });
 
-  test('should render loading state initially', async () => {
-    // Override mock for this specific test to simulate loading
-    mockedApi.fetchProblems.mockImplementation(() => new Promise(() => {}));
+  test('renders problem list correctly', async () => {
+    renderWithProviders(<ProblemList />);
 
-    render(
-      <BrowserRouter>
-        <ProblemList />
-      </BrowserRouter>
-    );
-
-    // Check for loading indicator
-    expect(screen.getByTestId('main-loader')).toBeInTheDocument(); // Check specifically for MooLoading
-
-    // Wait for loading to potentially finish (it shouldn't in this case, but good practice)
+    // Check if problem titles are rendered
     await waitFor(() => {
-      expect(screen.getByTestId('main-loader')).toBeInTheDocument();
-    }, { timeout: 50 }); // Short timeout just to ensure initial render
+      expect(screen.getByText('Problem Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Problem Beta')).toBeInTheDocument();
+    });
 
-    // Ensure problems are not yet rendered
-    expect(screen.queryByText('Easy Problem')).not.toBeInTheDocument();
+    // Check if difficulty badges are rendered (assuming ProblemCard renders them)
+    expect(screen.getByText('3')).toBeInTheDocument(); 
+    expect(screen.getByText('7')).toBeInTheDocument();
   });
 
-  test('should render the list of problems', async () => {
-    // Mock fetch to return sample problems array directly
-    mockedApi.fetchProblems.mockResolvedValue(mockProblems);
+  test('filters problems by search query', async () => {
+    renderWithProviders(<ProblemList />);
 
-    render(
-      <BrowserRouter>
-        <ProblemList />
-      </BrowserRouter>
-    );
-
-    // Wait for loading to disappear and problems to appear
+    // Wait for initial render
     await waitFor(() => {
-      expect(screen.queryByTestId('main-loader')).not.toBeInTheDocument();
+      expect(screen.getByText('Problem Alpha')).toBeInTheDocument();
     });
 
-    // Check if problems are rendered
-    expect(screen.getByText('Easy Problem')).toBeInTheDocument();
-    expect(screen.getByText('Hard Problem')).toBeInTheDocument();
+    // Simulate typing in the search box
+    const searchInput = screen.getByPlaceholderText('Search problems...');
+    fireEvent.change(searchInput, { target: { value: 'Alpha' } });
+
+    // Check if only matching problem remains
+    await waitFor(() => {
+      expect(screen.getByText('Problem Alpha')).toBeInTheDocument();
+      expect(screen.queryByText('Problem Beta')).not.toBeInTheDocument();
+    });
   });
 
-  test('should sort problems by difficulty', async () => {
-    // Mock fetch to return sample problems array directly
-    mockedApi.fetchProblems.mockResolvedValue(mockProblems);
+  test('navigates to problem detail on card click', async () => {
+    renderWithProviders(<ProblemList />);
 
-    render(
-      <BrowserRouter>
-        <ProblemList />
-      </BrowserRouter>
-    );
+    // Wait for card to be available
+    const problemCard = await screen.findByText('Problem Alpha');
+    fireEvent.click(problemCard); 
 
-     // Wait for loading to disappear
-     await waitFor(() => {
-      expect(screen.queryByTestId('main-loader')).not.toBeInTheDocument();
-    });
-
-    // --- Start: Temporarily commented out sorting interaction ---
-    // // Ensure problems are rendered initially before sorting
-    // const initialEasyProblem = screen.getByText('Easy Problem');
-    // const initialHardProblem = screen.getByText('Hard Problem');
-    // // Initial order check (Easy before Hard based on mock data difficulty)
-    // expect(initialEasyProblem.compareDocumentPosition(initialHardProblem)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    // expect(mockedApi.fetchProblems).toHaveBeenCalledTimes(1); // Initial fetch
-
-    // // Find the container holding the sort controls using the SortIcon
-    // const sortIcon = screen.getByTestId('SortIcon');
-    // const sortControlsContainer = sortIcon.closest('.MuiBox-root') as HTMLElement; // Cast to HTMLElement
-    // if (!sortControlsContainer) throw new Error("Could not find sort controls container");
-
-    // // Find the sort dropdown trigger within the container and select 'Difficulty'
-    // const sortSelect = within(sortControlsContainer).getByRole('combobox');
-    // // Wrap user events causing state updates in act
-    // await act(async () => {
-    //   await userEvent.click(sortSelect);
-    // });
-    // const sortListbox = await screen.findByRole('listbox');
-    // const difficultyOption = within(sortListbox).getByRole('option', { name: 'Difficulty' });
-    // await act(async () => {
-    //   await userEvent.click(difficultyOption);
-    // });
-    // --- End: Temporarily commented out sorting interaction ---
-
-
-    // --- Start: Temporarily commented out final assertion ---
-    // // Assert problems are sorted by difficulty (Easy, Medium, Hard) within waitFor
-    // await waitFor(() => {
-    //     // Find the container and headings *inside* the waitFor
-    //     // screen.debug(undefined, Infinity); // Add debug to see DOM when searching for container - Removed
-    //     const problemsContainer = screen.getByTestId('problem-list-container'); // Assuming you add data-testid="problem-list-container" to the Grid container
-    //     expect(problemsContainer).toBeInTheDocument(); // Make sure container is found
-
-    //     // Query within the container
-    //     const problemTitles = within(problemsContainer).getAllByRole('heading', { level: 6 });
-    //     expect(problemTitles).toHaveLength(3);
-    //     expect(problemTitles[0]).toHaveTextContent('Easy Problem');
-    //     expect(problemTitles[1]).toHaveTextContent('Medium Problem');
-    //     expect(problemTitles[2]).toHaveTextContent('Hard Problem');
-    // });
-    // --- End: Temporarily commented out final assertion ---
-
-    // --- Start: Added simple check for container ---
-    await waitFor(() => {
-      expect(screen.getByTestId('problem-list-container')).toBeInTheDocument();
-    });
-    // --- End: Added simple check for container ---
-
-
-    // Assert fetchProblems was not called again (remains 1 from initial load)
-    expect(mockedApi.fetchProblems).toHaveBeenCalledTimes(1);
+    // Check if navigate was called with the correct path
+    expect(mockedNavigate).toHaveBeenCalledWith('/problems/1');
   });
 
-  test('should display empty state when no problems are found', async () => {
-    // Mock fetch to return empty array directly
-    mockedApi.fetchProblems.mockResolvedValue([]);
-
-    render(
-      <BrowserRouter>
-        <ProblemList />
-      </BrowserRouter>
-    );
-
-    // Wait for loading to finish and empty state message to appear
-    await waitFor(() => {
-      // Debug: Log the body content when checking for empty state
-      // screen.debug(undefined, Infinity); // Removed after debugging
-      expect(screen.queryByTestId('main-loader')).not.toBeInTheDocument();
-      // Ensure the specific MooEmpty component text is checked - Updated text
-      expect(screen.getByText('No items found.')).toBeInTheDocument();
-    });
-
-    // Double check problems are not rendered
-    expect(screen.queryByText('Easy Problem')).not.toBeInTheDocument();
+  // Add more tests for filtering by difficulty, topics, sorting, pagination, loading state, error state etc.
+  test('shows loading state initially', () => {
+    require('../../store/apis/problemsApi').useGetProblemsQuery.mockImplementation(() => ({
+      data: undefined, // No data yet
+      isLoading: true,
+      error: null,
+    }));
+    renderWithProviders(<ProblemList />);
+    // Check for loading indicator (adjust query based on MooLoading implementation)
+    expect(screen.getByRole('progressbar')).toBeInTheDocument(); 
   });
 
-  test('should display error state when fetch fails', async () => {
-    // Mock fetch to simulate an error
-    mockedApi.fetchProblems.mockRejectedValue(new Error('Network Error'));
-
-    render(
-      <BrowserRouter>
-        <ProblemList />
-      </BrowserRouter>
-    );
-
-    // Wait for loading to finish and error message to appear
-    await waitFor(() => {
-      expect(screen.queryByTestId('main-loader')).not.toBeInTheDocument();
-      expect(screen.getByText('Failed to load problems. Please try again later.')).toBeInTheDocument();
-    });
-
-    // Ensure problems are not rendered
-    expect(screen.queryByText('Easy Problem')).not.toBeInTheDocument();
+  test('shows error state on fetch failure', () => {
+    require('../../store/apis/problemsApi').useGetProblemsQuery.mockImplementation(() => ({
+      data: undefined,
+      isLoading: false,
+      error: { status: 500, data: 'Server Error' }, // Example error object
+    }));
+    renderWithProviders(<ProblemList />);
+    // Check for error message (adjust query based on Alert implementation)
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Failed to load problems/i)).toBeInTheDocument();
   });
 }); 

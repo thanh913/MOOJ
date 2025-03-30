@@ -1,0 +1,3 @@
+# Leave this file empty to avoid circular imports, especially during testing.
+# Submodules like crud, models, schemas should be imported directly,
+# e.g., from app.crud import ...

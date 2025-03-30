@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -11,170 +11,130 @@ import {
   Grid,
   Card,
   CardContent,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  TextField,
   useTheme,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { fetchSubmissionById, fetchProblemById } from '../services/api';
+import { useGetSubmissionByIdQuery, useAppealSubmissionMutation } from '../store/apis/submissionsApi';
+import { Submission, ErrorDetail, SubmissionStatus } from '../types/submission';
 import { MooLoading, MooMascot, getSubmissionMoo } from '../components/shared/MooComponents';
 import { StatusChip, StatusProgress, ScoreDisplay } from '../components/shared/StatusIndicators';
 import { MathContent } from '../components/math/MathRenderer';
 
-// Interfaces for the data
-interface Submission {
-  id: number;
-  problem_id: number;
-  user_id: number;
-  content_type: 'direct' | 'image';
-  content: string;
-  latex_content?: string;
-  score?: number;
-  feedback?: string;
-  submitted_at: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-}
-
-interface Problem {
-  id: number;
-  title: string;
-  difficulty: number;
-}
-
-interface FeedbackError {
-  type: 'error' | 'warning' | 'success';
-  message: string;
-}
-
-// Helper component for displaying the submission content
-const SubmissionContent: React.FC<{
-  submission: Submission;
-}> = ({ submission }) => {
+const SubmissionContentDisplay: React.FC<{ submission: Submission }> = ({ submission }) => {
   return (
-    <Paper elevation={0} sx={(theme) => ({ p: 3, bgcolor: theme.palette.grey[50], height: '100%' })}>
-      {submission.content_type === 'direct' ? (
-        <Box sx={{ overflowX: 'auto' }}>
-          <MathContent content={submission.content} />
-        </Box>
-      ) : (
-        <Box sx={{ textAlign: 'center' }}>
-          <img
-            src={submission.content}
-            alt="Submitted solution"
-            style={{ maxWidth: '100%', maxHeight: '400px' }}
-          />
-        </Box>
-      )}
-      
-      {submission.latex_content && submission.content_type === 'image' && (
-        <Box sx={{ mt: 3 }}>
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>LaTeX Conversion</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box sx={{ overflowX: 'auto' }}>
-                <MathContent content={submission.latex_content} />
-              </Box>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
-      )}
+    <Paper elevation={0} sx={(theme) => ({ p: 3, bgcolor: theme.palette.grey[50], height: '100%', overflowX: 'auto' })}>
+      <MathContent content={submission.solution_text} />
     </Paper>
   );
 };
 
-// Helper component for displaying feedback analysis
-const FeedbackAnalysis: React.FC<{
-  feedback: string;
-}> = ({ feedback }) => {
-  // Parse feedback to extract errors (mock function, replace with actual implementation)
-  const parseErrors = (feedback: string): FeedbackError[] => {
-    // This is a simplified implementation - in a real app, you'd parse the structured feedback
-    return [
-      { type: 'error', message: 'Incorrect application of the chain rule on line 3' },
-      { type: 'warning', message: 'The final answer is correct, but the working steps could be clearer' },
-      { type: 'success', message: 'Correct application of the product rule' },
-    ];
-  };
-  
-  // Get icon for error type
-  const getErrorIcon = (type: FeedbackError['type']) => {
-    if (type === 'error') return <ErrorIcon color="error" />;
-    if (type === 'warning') return <WarningIcon color="warning" />;
-    return <CheckCircleIcon color="success" />;
-  };
+const FeedbackAnalysisDisplay: React.FC<{ 
+    submission: Submission;
+    onAppeal: (errorId: string, justification: string) => void;
+    isAppealing: boolean;
+}> = ({ submission, onAppeal, isAppealing }) => {
+  const [appealErrorId, setAppealErrorId] = useState<string | null>(null);
+  const [justification, setJustification] = useState<string>('');
 
-  const errors = parseErrors(feedback);
-  
+  const handleAppealSubmit = () => {
+      if (appealErrorId) {
+          onAppeal(appealErrorId, justification);
+          // Note: Don't reset state here, will be reset in parent component after successful appeal
+      }
+  }
+
   return (
-    <>
-      <Box sx={{ mb: 3 }}>
-        <MathContent content={feedback} />
-      </Box>
+    <Box>
+      {submission.feedback ? (
+        <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Feedback</Typography>
+            <MathContent content={submission.feedback} />
+        </Box>
+      ) : (
+        <Typography color="text.secondary" sx={{ mb: 3 }}>No textual feedback provided.</Typography>
+      )}
       
-      <Divider sx={{ mb: 3 }} />
-      
-      <Typography variant="subtitle2" gutterBottom>
-        Detailed Analysis
-      </Typography>
-      
-      <List>
-        {errors.map((error, index) => (
-          <ListItem key={index}>
-            <ListItemIcon>
-              {getErrorIcon(error.type)}
-            </ListItemIcon>
-            <ListItemText primary={error.message} />
-          </ListItem>
-        ))}
-      </List>
-    </>
+      {submission.errors && submission.errors.length > 0 && (
+          <Box>
+            <Divider sx={{ my: 3 }} />
+            <Typography variant="h6" gutterBottom>Identified Issues</Typography>
+            {submission.errors.map((error: ErrorDetail) => (
+                <Card key={error.id} variant="outlined" sx={{ mb: 2 }}>
+                    <CardContent>
+                        <Typography variant="subtitle1" color="error">{error.description}</Typography>
+                        {error.location && <Typography variant="body2" color="text.secondary">Location: {error.location}</Typography>}
+                        {error.type && <Typography variant="body2" color="text.secondary">Type: {error.type}</Typography>}
+                        {error.severity && <Typography variant="body2" color="text.secondary">Severity: {error.severity}</Typography>}
+                        {error.status && <Typography variant="body2" color="text.secondary">Status: {error.status}</Typography>}
+                        
+                        {error.status === 'active' && (
+                            appealErrorId === error.id ? (
+                                <Box sx={{ mt: 2 }}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Appeal Justification"
+                                        multiline
+                                        rows={3}
+                                        value={justification}
+                                        onChange={(e) => setJustification(e.target.value)}
+                                        sx={{ mb: 1 }}
+                                        disabled={isAppealing}
+                                    />
+                                    <Button 
+                                        size="small" 
+                                        variant="contained" 
+                                        onClick={handleAppealSubmit} 
+                                        disabled={!justification.trim() || isAppealing}
+                                    >
+                                        {isAppealing ? 'Submitting...' : 'Submit Appeal'}
+                                    </Button>
+                                    <Button 
+                                        size="small" 
+                                        onClick={() => setAppealErrorId(null)} 
+                                        sx={{ ml: 1 }}
+                                        disabled={isAppealing}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <Button 
+                                    size="small" 
+                                    variant="outlined" 
+                                    onClick={() => { setAppealErrorId(error.id); setJustification(''); }} 
+                                    sx={{ mt: 1 }}
+                                    disabled={isAppealing}
+                                >
+                                    Appeal this issue
+                                </Button>
+                            )
+                        )}
+                    </CardContent>
+                </Card>
+            ))}
+          </Box>
+      )}
+    </Box>
   );
 };
 
-// Helper component for submission metadata
-const SubmissionMetadata: React.FC<{
-  submission: Submission;
-}> = ({ submission }) => {
-  // Format the submitted date
+const SubmissionMetadataDisplay: React.FC<{ submission: Submission }> = ({ submission }) => {
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      });
+    } catch (e) {
+        return dateString;
+    }
   };
 
   return (
     <Box>
-      <Typography variant="subtitle2" color="text.secondary">
-        Submission Time
-      </Typography>
-      <Typography variant="body1">
-        {formatDate(submission.submitted_at)}
-      </Typography>
-      
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary">
-          Submission Type
-        </Typography>
-        <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-          {submission.content_type === 'direct' ? 'Direct Input (LaTeX)' : 'Image Upload'}
-        </Typography>
-      </Box>
+      <Typography variant="subtitle2" color="text.secondary">Submission Time</Typography>
+      <Typography variant="body1">{formatDate(submission.submitted_at)}</Typography>
     </Box>
   );
 };
@@ -185,185 +145,149 @@ const SubmissionDetail: React.FC = () => {
   const theme = useTheme();
   const submissionId = Number(id);
   
-  // State for data
-  const [submission, setSubmission] = useState<Submission | null>(null);
-  const [problem, setProblem] = useState<Problem | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Fetch submission data with polling for status updates
-  const fetchSubmission = useCallback(async () => {
-    if (isNaN(submissionId)) {
-      setError('Invalid submission ID');
-      setLoading(false);
-      return;
+  const [appealErrorId, setAppealErrorId] = useState<string | null>(null);
+  const [justification, setJustification] = useState<string>('');
+
+  const { data: submission, error: fetchError, isLoading, isFetching, refetch } = useGetSubmissionByIdQuery(
+    submissionId, 
+    {
+      skip: isNaN(submissionId),
     }
-    
-    try {
-      const data = await fetchSubmissionById(submissionId);
-      setSubmission(data);
-      
-      // If we don't have the problem info yet and have the problem_id, fetch it
-      if (!problem && data.problem_id) {
-        try {
-          const problemData = await fetchProblemById(data.problem_id);
-          setProblem(problemData);
-        } catch (err) {
-          console.error('Error fetching problem:', err);
-        }
+  );
+
+  const [appealSubmission, { isLoading: isAppealing }] = useAppealSubmissionMutation();
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+    if (submission && (submission.status === SubmissionStatus.Pending || submission.status === SubmissionStatus.Processing)) {
+        intervalId = setInterval(() => {
+            refetch();
+        }, 5000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
       }
-      
-      setError(null);
-    } catch (err) {
-      setError('Failed to load submission. Please try again later.');
-      console.error('Error fetching submission:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [submissionId, problem]);
+    };
+  }, [submission, refetch]);
+
+  const handleAppeal = async (errorId: string, justification: string) => {
+      try {
+          await appealSubmission({ 
+              submission_id: submissionId, 
+              error_id: errorId, 
+              justification 
+          }).unwrap();
+          // Show success message (placeholder)
+          alert("Appeal submitted successfully!");
+          setAppealErrorId(null);
+          setJustification('');
+      } catch (err) {
+          console.error("Failed to submit appeal:", err);
+          // Show error to user (placeholder)
+          alert("Failed to submit appeal.");
+      }
+  }
   
-  // Initial data load
-  useEffect(() => {
-    fetchSubmission();
-  }, [fetchSubmission]);
-  
-  // Polling for status updates
-  useEffect(() => {
-    // Only poll if the submission is in a non-final state
-    if (submission && (submission.status === 'pending' || submission.status === 'processing')) {
-      const interval = setInterval(() => {
-        fetchSubmission();
-      }, 3000); // Poll every 3 seconds
-      
-      return () => clearInterval(interval);
-    }
-  }, [submission, fetchSubmission]);
-  
-  // Render submission feedback section
-  const renderFeedback = () => {
-    if (!submission) return null;
-    
-    if (submission.status === 'completed') {
-      return submission.feedback ? (
-        <FeedbackAnalysis feedback={submission.feedback} />
-      ) : (
-        <Typography color="text.secondary">
-          No detailed feedback is available for this submission.
-        </Typography>
-      );
-    } else if (submission.status === 'failed') {
-      return (
-        <Alert severity="error">
-          There was an error processing your submission. Please try submitting again.
-        </Alert>
-      );
-    } else {
-      return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <CircularProgress size={24} sx={{ mb: 2 }} />
-          <Typography color="text.secondary">
-            Waiting for evaluation to complete...
-          </Typography>
+  if (isLoading) {
+    return <MooLoading message="Loading submission details..." />;
+  }
+
+  if (fetchError) {
+    const errorMessage = 
+      fetchError && 'status' in fetchError 
+        ? `Error ${fetchError.status}: ${JSON.stringify(fetchError.data)}` 
+        : 'Failed to load submission details.';
+    return (
+        <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <MooMascot {...getSubmissionMoo('failed')} />
+            <Alert severity="error">{errorMessage}</Alert>
+            <Button component={RouterLink} to="/problems" startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
+                Back to Problems
+            </Button>
         </Box>
-      );
+    );
+  }
+
+  if (!submission) {
+    return (
+        <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <MooMascot {...getSubmissionMoo('pending')} />
+            <Alert severity="warning">Submission not found.</Alert>
+            <Button component={RouterLink} to="/problems" startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
+                Back to Problems
+            </Button>
+        </Box>
+    );
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+      });
+    } catch (e) {
+        return dateString;
     }
   };
-  
+
   return (
     <Box>
-      {loading ? (
-        <MooLoading message="Fetching your submission..." />
-      ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      ) : submission ? (
-        <>
-          {/* Header with navigation */}
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                component={RouterLink}
-                to={`/problems/${submission.problem_id}`}
-                sx={{ mb: 2 }}
-              >
-                Back to Problem
-              </Button>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                Submission {submission.id}
-                {problem && (
-                  <Typography variant="h6" component="span" color="text.secondary" sx={{ ml: 2 }}>
-                    for {problem.title}
-                  </Typography>
+      <Button component={RouterLink} to={`/problems/${submission.problem_id}`} startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
+        Back to Problem
+      </Button>
+      
+      <Paper elevation={2} sx={{ p: { xs: 2, md: 3 } }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <Typography variant="h5" component="h1" gutterBottom>
+              Submission #{submission.id}
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+                <StatusChip status={submission.status} />
+                {(submission.status === SubmissionStatus.Pending || submission.status === SubmissionStatus.Processing || isFetching) && (
+                    <StatusProgress status={submission.status} />
                 )}
-              </Typography>
             </Box>
-          </Box>
-          
-          {/* Submission Status Card */}
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={8}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Status
-                    </Typography>
-                    <StatusChip 
-                      status={submission.status} 
-                      showRefreshIndicator={true}
-                    />
-                  </Box>
-                  
-                  <StatusProgress status={submission.status} />
-                  
-                  {submission.status === 'completed' && submission.score !== undefined && (
-                    <ScoreDisplay score={submission.score} />
-                  )}
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <SubmissionMetadata submission={submission} />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-          
-          {/* Result Mascot */}
-          {submission && (
-            <Box sx={{ my: 3 }}>
-              <MooMascot 
-                {...getSubmissionMoo(submission.status, submission.score)}
-              />
+            {submission.status === SubmissionStatus.Completed && submission.score !== undefined && (
+              <Box sx={{ mb: 3 }}>
+                <ScoreDisplay score={submission.score} />
+              </Box>
+            )}
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">Submission Time</Typography>
+              <Typography variant="body1">{formatDate(submission.submitted_at)}</Typography>
             </Box>
-          )}
-          
-          {/* Submission Content and Feedback */}
-          <Grid container spacing={3}>
-            {/* Original Submission */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" component="h2" gutterBottom>
-                Your Submission
-              </Typography>
-              <SubmissionContent submission={submission} />
-            </Grid>
-            
-            {/* Feedback */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" component="h2" gutterBottom>
-                Feedback
-              </Typography>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: theme.palette.grey[50], height: 'calc(100% - 40px)' }}>
-                {renderFeedback()}
-              </Paper>
-            </Grid>
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+                <MooMascot {...getSubmissionMoo(submission.status, submission.score)} />
+            </Box>
           </Grid>
-        </>
-      ) : (
-        <Alert severity="warning">Submission not found</Alert>
-      )}
+          
+          <Grid item xs={12} md={8}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>Submitted Solution</Typography>
+              <SubmissionContentDisplay submission={submission} />
+            </Box>
+            
+            <Divider sx={{ my: 3 }} />
+
+            {submission.status === SubmissionStatus.Completed && (
+                <FeedbackAnalysisDisplay 
+                    submission={submission} 
+                    onAppeal={handleAppeal} 
+                    isAppealing={isAppealing}
+                />
+            )}
+            {submission.status === SubmissionStatus.Failed && (
+                <Alert severity="error">Evaluation failed. Please try submitting again later or contact support.</Alert>
+            )}
+             {(submission.status === SubmissionStatus.Pending || submission.status === SubmissionStatus.Processing) && (
+                <MooLoading message="Evaluation in progress..." />
+            )}
+          </Grid>
+        </Grid>
+      </Paper>
     </Box>
   );
 };

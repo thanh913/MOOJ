@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/mooj")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/mooj")
 
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key_here")

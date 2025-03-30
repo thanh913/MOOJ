@@ -11,32 +11,28 @@ def test_image_to_latex_conversion():
     """
     Test that the image_to_LaTeX function correctly processes an image and returns LaTeX.
     """
-    # Import the function to test
+    # Create a test image
+    img = Image.new('RGB', (100, 100), color='white')
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_bytes = buffered.getvalue()
+    
+    # Mock the function
     with patch('app.evaluation.image_to_latex.convert_image_to_latex') as mock_convert:
-        # Setup the mock to return a specific LaTeX string
+        # Set up the mock to return a specific value
         mock_convert.return_value = r"\frac{a}{b} = c"
         
-        # Create a test image
-        img = Image.new('RGB', (100, 100), color='white')
-        buffered = BytesIO()
-        img.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
+        # Import the module after patching
+        from app.evaluation.image_to_latex import convert_image_to_latex
         
-        # Mock import
-        with patch.dict('sys.modules', {
-            'app.evaluation.image_to_latex': MagicMock()
-        }):
-            # Now import should use our mocked module
-            from app.evaluation.image_to_latex import convert_image_to_latex
-            
-            # Call the function with our test image
-            result = convert_image_to_latex(img_str)
-            
-            # Assert the result matches our expected LaTeX
-            assert result == r"\frac{a}{b} = c"
-            
-            # Verify the mock was called correctly
-            mock_convert.assert_called_once()
+        # Call the function
+        result = convert_image_to_latex(img_bytes)
+        
+        # Assert the result
+        assert result == r"\frac{a}{b} = c"
+        
+        # Verify the mock was called with the right arguments
+        mock_convert.assert_called_once_with(img_bytes)
 
 
 @pytest.mark.evaluation
@@ -49,18 +45,25 @@ def test_image_to_latex_with_different_inputs(test_input, expected):
     """
     Parametrized test for different types of inputs to the image_to_LaTeX function.
     """
+    # Convert string input to bytes to match function signature
+    if test_input == "empty_image":
+        test_bytes = b""
+    else:
+        test_bytes = test_input.encode('utf-8')
+    
+    # Mock the function
     with patch('app.evaluation.image_to_latex.convert_image_to_latex') as mock_convert:
-        # Setup the mock to return different values based on input
+        # Set up mock to return the expected value
         mock_convert.return_value = expected
         
-        # Mock module import
-        with patch.dict('sys.modules', {
-            'app.evaluation.image_to_latex': MagicMock()
-        }):
-            from app.evaluation.image_to_latex import convert_image_to_latex
-            
-            # Call with dummy input (in real test we'd create appropriate test images)
-            result = convert_image_to_latex(test_input)
-            
-            # Assert
-            assert result == expected 
+        # Import the module after patching
+        from app.evaluation.image_to_latex import convert_image_to_latex
+        
+        # Call the function
+        result = convert_image_to_latex(test_bytes)
+        
+        # Assert the result
+        assert result == expected
+        
+        # Verify the mock was called
+        mock_convert.assert_called_once_with(test_bytes) 

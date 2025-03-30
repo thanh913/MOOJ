@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.9"
 
 services:
   frontend:
@@ -8,39 +8,99 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # Mount local code, but exclude node_modules
       - ./frontend:/app
-      - /app/node_modules
+      - /app/node_modules 
     depends_on:
       - backend
     environment:
-      - REACT_APP_API_URL=http://localhost:8000/api
-      - WATCHPACK_POLLING=true  # Enable file watching in Docker
+      - REACT_APP_API_BASE_URL=/api/v1/
+      - REACT_APP_ENV=development
+      - WDS_SOCKET_PORT=0 # Fix for HMR issue in Docker
+      - IS_DOCKER=true
+    stdin_open: true # For Create React App interactive mode
+    tty: true        # For Create React App interactive mode
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:3000"] # Basic check
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
-    depends_on:
-      - db
+    ports:
+      - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/mooj
-      - APP_NAME=MOOJ
-      - BACKEND_CORS_ORIGINS=["http://localhost:3000"]
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/mooj"
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8000/health"] # Assuming a /health endpoint
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
   db:
     image: postgres:14
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mooj
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mooj
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mooj"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.11-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+        test: ["CMD", "rabbitmqctl", "status"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  judge-worker:
+    build:
+      context: .
+      dockerfile: ./judge-worker/Dockerfile
+    volumes:
+      # Mount backend app code to /app inside container
+      - ./backend/app:/app 
+      # Mount worker script to /worker.py inside container
+      - ./judge-worker/worker.py:/worker.py 
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/mooj"
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  rabbitmq_data:

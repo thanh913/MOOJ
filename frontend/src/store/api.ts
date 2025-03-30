@@ -5,18 +5,33 @@ import { EndpointBuilder } from '@reduxjs/toolkit/dist/query/endpointDefinitions
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   baseQuery: fetchBaseQuery({
-    // Use environment variable for base URL, fallback to localhost for development
-    baseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1',
-    prepareHeaders: (headers: Headers, { getState }: { getState: () => unknown }) => {
-      // Add the auth token to headers if it exists in the state
-      const token = (getState() as import('./index').RootState).auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+    // Use absolute URL for direct browser access to the mapped backend port
+    baseUrl: 'http://localhost:8000/api/v1/',
+    // Add basic error handling for common network issues
+    fetchFn: async (...args) => {
+      try {
+        const response = await fetch(...args);
+        // Log response status for debugging
+        console.log(`API response status: ${response.status} for ${args[0]}`);
+        // Check if the response is ok (status in the range 200-299)
+        if (!response.ok) {
+          // Throw an error for bad responses
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        return response;
+      } catch (error) {
+        console.error('Network error or API failure:', error);
+        // Re-throw as a structured error for RTK Query to handle
+        // You might want to customize the structure based on how you handle errors downstream
+        throw { 
+          status: 'FETCH_ERROR', 
+          message: error instanceof Error ? error.message : 'An unknown network error occurred',
+          originalError: error 
+        };
       }
-      return headers;
-    },
+    }
   }),
-  tagTypes: ['Problem', 'User', 'Submission'], // Define tag types for caching
+  tagTypes: ['Problem', 'Submission'], // Define tag types for caching
   endpoints: (builder: EndpointBuilder<any, any, any>) => ({}), // Endpoints will be injected later
 });
 

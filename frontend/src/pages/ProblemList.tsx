@@ -6,7 +6,6 @@ import {
   Grid,
   TextField,
   InputAdornment,
-  CircularProgress,
   Alert,
   useTheme,
   useMediaQuery,
@@ -14,12 +13,12 @@ import {
   Container,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { fetchProblems } from '../services/api';
+import { useGetProblemsQuery } from '../store/apis/problemsApi';
 import ProblemFilters from '../components/problems/ProblemFilters';
 import SortControls, { SortDirection, SortField } from '../components/problems/SortControls';
 import ProblemCard from '../components/problems/ProblemCard';
 import EnhancedPagination from '../components/problems/EnhancedPagination';
-import { Problem } from '../models/types';
+import { Problem } from '../types/problem';
 import { MooLoading, MooEmpty } from '../components/shared/MooComponents';
 
 const ProblemList: React.FC = () => {
@@ -27,15 +26,17 @@ const ProblemList: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // State for problem data
-  const [problems, setProblems] = useState<Problem[]>([]);
-  const [filteredProblems, setFilteredProblems] = useState<Problem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the RTK Query hook to fetch problems
+  const {
+    data: problems = [], // Default to empty array if data is undefined
+    error: fetchError, 
+    isLoading,
+  } = useGetProblemsQuery({}); // Pass empty object for default query params
   
   // State for filtering/sorting options
+  const [filteredProblems, setFilteredProblems] = useState<Problem[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [difficultyRange, setDifficultyRange] = useState<[number, number]>([1, 9]);
+  const [difficultyRange, setDifficultyRange] = useState<[number, number]>([1, 100]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>('difficulty');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -44,33 +45,11 @@ const ProblemList: React.FC = () => {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(8);
   
-  // Load problems on component mount
-  useEffect(() => {
-    const loadProblems = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchProblems();
-        if (data && Array.isArray(data)) {
-          setProblems(data);
-          setFilteredProblems(data);
-        } else {
-          throw new Error('Invalid data format received');
-        }
-      } catch (err) {
-        setError('Failed to load problems. Please try again later.');
-        console.error('Error fetching problems:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadProblems();
-  }, []);
-  
   // Apply filters and sorting
   useEffect(() => {
-    let result = [...problems];
+    if (!problems) return; // Guard against initial undefined state
+
+    let result: Problem[] = [...problems];
     
     // Apply difficulty range filter
     result = result.filter(problem => 
@@ -80,7 +59,7 @@ const ProblemList: React.FC = () => {
     // Apply topic filter
     if (selectedTopics.length > 0) {
       result = result.filter(problem => 
-        selectedTopics.some(topic => problem.topics.includes(topic))
+        selectedTopics.some(topic => problem.topics?.includes(topic)) // Add optional chaining for safety
       );
     }
     
@@ -99,19 +78,17 @@ const ProblemList: React.FC = () => {
       if (sortField === 'difficulty') {
         comparison = a.difficulty - b.difficulty;
       } else if (sortField === 'created_at') {
-        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      } else if (sortField === 'attempts') {
-        // Mock sorting by attempts (replace with actual data)
-        const aAttempts = Math.floor(Math.random() * 1000);
-        const bAttempts = Math.floor(Math.random() * 1000);
-        comparison = aAttempts - bAttempts;
+        // Make sure created_at exists and is valid date string before comparing
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        comparison = dateA - dateB;
       }
       
       return sortDirection === 'asc' ? comparison : -comparison;
     });
     
     setFilteredProblems(result);
-    setPage(1); // Reset to first page when filters change
+    setPage(1); // Reset to first page when filters/source data change
   }, [difficultyRange, selectedTopics, searchQuery, sortField, sortDirection, problems]);
   
   // Handle search change
@@ -136,7 +113,7 @@ const ProblemList: React.FC = () => {
   
   // Handle filter reset
   const handleResetFilters = () => {
-    setDifficultyRange([1, 9]);
+    setDifficultyRange([1, 100]);
     setSelectedTopics([]);
     setSearchQuery('');
   };
@@ -199,23 +176,23 @@ const ProblemList: React.FC = () => {
           resetFilters={handleResetFilters}
         />
         
+        {/* Loading State */}
+        {isLoading && <MooLoading />}
+        
         {/* Error Display */}
-        {error && (
+        {fetchError && (
           <Alert severity="error" sx={{ mb: 4 }}>
-            {error}
+            {`Failed to load problems. ${('status' in fetchError ? fetchError.status : '')} `}
           </Alert>
         )}
         
-        {/* Loading State */}
-        {loading && <MooLoading />}
-        
         {/* Empty State */}
-        {!loading && !error && currentProblems.length === 0 && (
+        {!isLoading && !fetchError && currentProblems.length === 0 && (
           <MooEmpty />
         )}
         
         {/* Problem List */}
-        {!loading && !error && currentProblems.length > 0 && (
+        {!isLoading && !fetchError && currentProblems.length > 0 && (
           <Box>
             <Grid container spacing={3} sx={{ mb: 3 }} data-testid="problem-list-container">
               {currentProblems.map((problem) => (

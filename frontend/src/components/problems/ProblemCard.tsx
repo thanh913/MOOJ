@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
-import { Problem } from '../../models/types';
+import { Problem } from '../../types/problem';
 
 // Styled components for visual elements
 const DifficultyBadge = styled(Box)(({ theme }) => ({
@@ -124,7 +124,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           
           {/* Topic Chips */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-            {problem.topics.map((topic) => (
+            {(problem.topics ?? []).map((topic) => (
               <Chip 
                 key={topic} 
                 label={topic} 

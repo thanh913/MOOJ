@@ -1,68 +1,87 @@
-import { Problem, Submission, SubmissionData } from '../models/types';
+import { faker } from '@faker-js/faker';
+// Import specific types from the /types directory
+import { Problem } from '../types/problem';
+import { Submission, SubmissionCreate, SubmissionStatus, ErrorDetail } from '../types/submission';
+import { User, UserRole } from '../types/user';
 
-// Generate mock problems for development
-export const generateMockProblems = (): Problem[] => [
-  {
-    id: 1,
-    title: 'Prove the Pythagorean Theorem',
-    statement: `# Pythagorean Theorem\n\nProve that in a right-angled triangle, the square of the length of the hypotenuse equals the sum of squares of the other two sides.\n\n$$a^2 + b^2 = c^2$$\n\nWhere $a$ and $b$ are the lengths of the legs, and $c$ is the length of the hypotenuse.`,
-    difficulty: 3,
-    topics: ['Geometry', 'Triangles', 'Algebra'],
-    created_at: '2023-01-15T10:30:00Z',
-    created_by: 1, // Mock moderator ID
-    is_published: true
-  },
-  {
-    id: 2,
-    title: 'Prove the Quadratic Formula',
-    statement: `# Quadratic Formula\n\nProve that the roots of the quadratic equation $ax^2 + bx + c = 0$ are given by:\n\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`,
-    difficulty: 4,
-    topics: ['Algebra', 'Equations'],
-    created_at: '2023-01-20T14:15:00Z',
-    created_by: 1, // Mock moderator ID
-    is_published: true
-  },
-  {
-    id: 3,
-    title: 'Prove the Fundamental Theorem of Calculus',
-    statement: `# Fundamental Theorem of Calculus\n\nProve that if $f$ is continuous on $[a, b]$ and $F$ is an antiderivative of $f$ on $[a, b]$, then:\n\n$$\\int_{a}^{b} f(x) dx = F(b) - F(a)$$`,
-    difficulty: 7,
-    topics: ['Calculus', 'Integration'],
-    created_at: '2023-02-01T09:45:00Z',
-    created_by: 2, // Different mock moderator ID
-    is_published: true
-  },
-];
+// Helper to create a mock user
+const createMockUser = (id: number): User => ({
+  id,
+  username: faker.internet.userName(),
+  email: faker.internet.email(),
+  role: faker.helpers.arrayElement([UserRole.User, UserRole.Moderator, UserRole.Admin]),
+  created_at: faker.date.past().toISOString(),
+});
 
-// Generate a mock submission for development
-export const generateMockSubmission = (id: number, problemId = 1): Submission => {
-  const statuses: Array<'pending' | 'processing' | 'completed' | 'failed'> = ['pending', 'processing', 'completed', 'failed'];
-  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-  
+// Generate mock problems matching the ../types/problem.ts structure
+export const generateMockProblems = (count = 10): Problem[] => {
+  const problems: Problem[] = [];
+  for (let i = 1; i <= count; i++) {
+    const creatorId = faker.number.int({ min: 1, max: 5 });
+    problems.push({
+      id: i,
+      title: faker.lorem.sentence(faker.number.int({ min: 3, max: 7 })).replace('.', ''),
+      statement: `# ${faker.lorem.words(3)}\n\n${faker.lorem.paragraph()}\n\n$$ ${faker.lorem.words(5)} $$`,
+      difficulty: faker.number.int({ min: 1, max: 90 }) / 10, // Generate 1.0 to 9.0
+      topics: faker.helpers.arrayElements(faker.lorem.words(10).split(' '), faker.number.int({ min: 1, max: 4 })),
+      is_published: faker.datatype.boolean(0.9), // 90% chance published
+      created_at: faker.date.past().toISOString(),
+      created_by_id: creatorId,
+      creator: createMockUser(creatorId),
+    });
+  }
+  return problems;
+};
+
+// Generate mock error details
+const generateMockErrors = (): ErrorDetail[] => {
+  const count = faker.number.int({ min: 0, max: 3 });
+  const errors: ErrorDetail[] = [];
+  for (let i = 0; i < count; i++) {
+    errors.push({
+      id: `mock-err-${faker.string.uuid()}`,
+      type: faker.helpers.arrayElement(['logical', 'calculation', 'formatting', 'completeness']),
+      location: `Step ${faker.number.int({ min: 1, max: 5 })}`,
+      description: faker.lorem.sentence(),
+      severity: faker.helpers.arrayElement(['low', 'medium', 'high']),
+      status: 'active',
+    });
+  }
+  return errors;
+};
+
+// Generate a single mock submission
+export const generateMockSubmission = (id: number, problemId?: number): Submission => {
+  const status = faker.helpers.arrayElement<SubmissionStatus>([SubmissionStatus.Pending, SubmissionStatus.Processing, SubmissionStatus.Completed, SubmissionStatus.Failed]);
+  const errors = status === SubmissionStatus.Completed || status === SubmissionStatus.Failed ? generateMockErrors() : [];
+  const score = status === SubmissionStatus.Completed ? faker.number.int({ min: 0, max: 100 }) : undefined;
+  const feedback = status === SubmissionStatus.Completed ? `# Mock Feedback\n\n${faker.lorem.paragraph()}` : undefined;
+
   return {
-    id,
-    problem_id: problemId,
-    user_id: 1,
-    content_type: 'direct',
-    content: 'Let c be the hypotenuse of the right triangle, and a and b be the other two sides. We can construct a square with side length a + b...',
-    latex_content: randomStatus === 'completed' ? 'Let $c$ be the hypotenuse of the right triangle, and $a$ and $b$ be the other two sides. We can construct a square with side length $a + b$...' : undefined,
-    score: randomStatus === 'completed' ? Math.floor(Math.random() * 100) : undefined,
-    feedback: randomStatus === 'completed' ? 'Good attempt, but you need to be more rigorous in steps 3-5.' : undefined,
-    status: randomStatus,
-    submitted_at: new Date().toISOString(),
+    id: id,
+    problem_id: problemId ?? faker.number.int({ min: 1, max: 10 }),
+    solution_text: `\\text{Solution attempt } ${id}\n${faker.lorem.paragraph()}\n$$ ${faker.lorem.sentence()} $$`,
+    submitted_at: faker.date.past().toISOString(),
+    status: status,
+    score: score,
+    feedback: feedback,
+    errors: errors,
   };
 };
 
-// Create a mock submission during development
-export const createMockSubmission = (data: SubmissionData): Submission => {
+// Create a new mock submission (simulating API creation response)
+let nextSubmissionId = 100; // Start mock IDs high
+export const createMockSubmission = (data: SubmissionCreate): Submission => {
+  const newId = nextSubmissionId++;
   return {
-    id: Math.floor(Math.random() * 10000),
+    id: newId,
     problem_id: data.problem_id,
-    user_id: 1,
-    content_type: data.content_type,
-    content: data.content,
-    status: 'pending',
+    solution_text: data.solution_text,
     submitted_at: new Date().toISOString(),
+    status: SubmissionStatus.Pending, // Starts as pending
+    score: undefined,
+    feedback: undefined,
+    errors: [],
   };
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -15,127 +15,118 @@ import {
   Tabs,
   Tab,
   TextField,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   useTheme,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import ImageIcon from '@mui/icons-material/Image';
 import SimpleMarkdownRenderer from '../components/SimpleMarkdownRenderer';
-import { fetchProblemById, createSubmission } from '../services/api';
-
-// Interface for the problem data
-interface Problem {
-  id: number;
-  title: string;
-  statement: string;
-  difficulty: number;
-  topics: string[];
-  created_at: string;
-}
-
-// Interface for submission data
-interface SubmissionData {
-  problem_id: number;
-  content_type: 'direct' | 'image';
-  content: string;
-}
+import { MathContent } from '../components/math/MathRenderer';
+import LaTeXEditor from '../components/math/LaTeXEditor';
+import { useGetProblemByIdQuery } from '../store/apis/problemsApi';
+import { useCreateSubmissionMutation } from '../store/apis/submissionsApi';
+import { Problem } from '../types/problem';
+import { Submission } from '../types/submission';
 
 const ProblemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
   const problemId = Number(id);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // States
-  const [problem, setProblem] = useState<Problem | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: problem, error: fetchError, isLoading } = useGetProblemByIdQuery(problemId, {
+    skip: isNaN(problemId),
+  });
+  const [createSubmission, { isLoading: isSubmitting, error: submitError }] = useCreateSubmissionMutation();
+  
   const [activeTab, setActiveTab] = useState<number>(0);
-  const [submissionType, setSubmissionType] = useState<'direct' | 'image'>('direct');
-  const [directInput, setDirectInput] = useState<string>('');
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [solutionText, setSolutionText] = useState<string>('');
+  const [inputMode, setInputMode] = useState<'text' | 'image'>('text');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
-  // Fetch problem data
-  useEffect(() => {
-    const fetchProblem = async () => {
-      if (isNaN(problemId)) {
-        setError('Invalid problem ID');
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        const data = await fetchProblemById(problemId);
-        setProblem(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load problem. Please try again later.');
-        console.error('Error fetching problem:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchProblem();
-  }, [problemId]);
-  
-  // Handle tab change
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
   
-  // Handle submission type change
-  const handleSubmissionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSubmissionType(event.target.value as 'direct' | 'image');
-  };
-  
-  // Handle direct input change
-  const handleDirectInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDirectInput(event.target.value);
-  };
-  
-  // Handle image URL change
-  const handleImageUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setImageUrl(event.target.value);
-  };
-  
-  // Handle submission
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
-    
-    try {
-      const content = submissionType === 'direct' ? directInput : imageUrl;
-      
-      if (!content.trim()) {
-        setSubmitError('Please provide a submission');
-        setSubmitting(false);
-        return;
+  const handleInputModeChange = (event: React.MouseEvent<HTMLElement>, newMode: 'text' | 'image') => {
+    if (newMode !== null) {
+      setInputMode(newMode);
+      // Reset the other input type when switching
+      if (newMode === 'text') {
+        setSelectedFile(null);
+        setPreviewUrl(null);
+      } else {
+        setSolutionText('');
       }
-      
-      const submissionData: SubmissionData = {
-        problem_id: problemId,
-        content_type: submissionType,
-        content,
-      };
-      
-      const submission = await createSubmission(submissionData);
-      
-      // Navigate to the submission detail page
-      navigate(`/submissions/${submission.id}`);
-    } catch (err) {
-      setSubmitError('Failed to submit solution. Please try again.');
-      console.error('Error submitting solution:', err);
-    } finally {
-      setSubmitting(false);
     }
   };
   
-  // Get difficulty label
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setSelectedFile(file);
+      
+      // Create a preview URL for the image
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        setPreviewUrl(fileReader.result as string);
+      };
+      fileReader.readAsDataURL(file);
+    }
+  };
+  
+  const handleBrowseClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleSolutionTextChange = (value: string) => {
+    setSolutionText(value);
+  };
+  
+  const handleSubmit = async () => {
+    try {
+      let submissionResult: Submission;
+      
+      if (inputMode === 'text') {
+        // Text submission
+        if (!solutionText.trim()) {
+          console.warn('Submission text cannot be empty');
+          return;
+        }
+        
+        submissionResult = await createSubmission({ 
+          problem_id: problemId, 
+          solution_text: solutionText 
+        }).unwrap();
+      } else {
+        // Image submission
+        if (!selectedFile) {
+          console.warn('No image selected');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('problem_id', problemId.toString());
+        formData.append('image_file', selectedFile);
+        
+        submissionResult = await createSubmission(formData).unwrap();
+      }
+      
+      if (submissionResult && submissionResult.id) {
+        navigate(`/submissions/${submissionResult.id}`);
+      } else {
+        console.error('Submission creation succeeded but no ID received.');
+      }
+    } catch (err) {
+      console.error('Failed to submit solution:', err);
+    }
+  };
+  
   const getDifficultyLabel = (difficulty: number) => {
     const labels: Record<number, string> = {
       1: 'Very Easy',
@@ -152,81 +143,170 @@ const ProblemDetail: React.FC = () => {
     return labels[difficulty] || `Level ${difficulty}`;
   };
   
-  // Get difficulty color
   const getDifficultyColor = (difficulty: number) => {
     if (difficulty <= 3) return theme.palette.success.main;
     if (difficulty <= 6) return theme.palette.warning.main;
     return theme.palette.error.main;
   };
   
-  // Render problem statement tab
+  if (isLoading) {
+    return <CircularProgress />;
+  }
+
+  if (fetchError || !problem) {
+     const errorMessage = 
+      fetchError ? (
+        // Handle different types of errors
+        'status' in fetchError ? 
+          // API errors
+          `Error ${fetchError.status}: ${JSON.stringify(fetchError.data)}` : 
+          // Network errors
+          fetchError.status === 'FETCH_ERROR' ? 
+            'Network error: Unable to connect to the server. Please check your connection and try again.' :
+            'Failed to load problem details.'
+      ) : 'Failed to load problem details.';
+    
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4 }}>
+        <Alert severity="error" sx={{ mb: 2, width: '100%', maxWidth: 600 }}>{errorMessage}</Alert>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Reload Page
+        </Button>
+      </Box>
+    );
+  }
+
   const renderProblemTab = () => {
     if (!problem) return null;
     
     return (
       <Box>
-        <SimpleMarkdownRenderer content={problem.statement} />
+        <MathContent content={problem.statement} />
       </Box>
     );
   };
   
-  // Render submission tab
   const renderSubmissionTab = () => {
+    const apiErrorMessage = submitError ? (
+        ('status' in submitError ? 
+         `API Error (${submitError.status}): ${JSON.stringify(submitError.data)}` : 
+         (submitError as any).message) || 'Failed to submit'
+    ) : null;
+
     return (
       <Box sx={{ mt: 2 }}>
         <Card sx={{ mb: 3, p: 2 }}>
           <CardContent>
-            <FormControl component="fieldset">
-              <FormLabel component="legend">Submission Type</FormLabel>
-              <RadioGroup
-                row
-                name="submission-type"
-                value={submissionType}
-                onChange={handleSubmissionTypeChange}
-              >
-                <FormControlLabel value="direct" control={<Radio />} label="Direct Input (LaTeX)" />
-                <FormControlLabel value="image" control={<Radio />} label="Image URL" />
-              </RadioGroup>
-            </FormControl>
-            
-            {submissionType === 'direct' ? (
-              <TextField
-                label="Enter your solution in LaTeX"
-                multiline
-                rows={10}
-                fullWidth
-                value={directInput}
-                onChange={handleDirectInputChange}
-                sx={{ mt: 2 }}
-                placeholder="Enter your mathematical solution using LaTeX notation..."
-              />
-            ) : (
-              <TextField
-                label="Image URL"
-                fullWidth
-                value={imageUrl}
-                onChange={handleImageUrlChange}
-                sx={{ mt: 2 }}
-                placeholder="Paste the URL of your solution image..."
-                helperText="Upload your handwritten solution image and paste the URL here"
-              />
-            )}
-            
-            {submitError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {submitError}
-              </Alert>
-            )}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Your Solution
+              </Typography>
+              
+              <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+                <ToggleButtonGroup
+                  value={inputMode}
+                  exclusive
+                  onChange={handleInputModeChange}
+                  aria-label="solution input mode"
+                >
+                  <ToggleButton value="text" aria-label="text input">
+                    <EditIcon sx={{ mr: 1 }} />
+                    Type LaTeX
+                  </ToggleButton>
+                  <ToggleButton value="image" aria-label="image upload">
+                    <ImageIcon sx={{ mr: 1 }} />
+                    Upload Image
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              
+              {inputMode === 'text' && (
+                <LaTeXEditor
+                  value={solutionText}
+                  onChange={handleSolutionTextChange}
+                  label="Enter your solution in LaTeX"
+                  disabled={isSubmitting}
+                  error={!!submitError}
+                  helperText={apiErrorMessage || ''}
+                  rows={10}
+                />
+              )}
+              
+              {inputMode === 'image' && (
+                <Box>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleFileSelect}
+                  />
+                  
+                  <Box 
+                    sx={{
+                      border: '2px dashed #ccc',
+                      borderRadius: 2,
+                      p: 3,
+                      textAlign: 'center',
+                      backgroundColor: '#f8f9fa',
+                      mb: 2,
+                    }}
+                  >
+                    {previewUrl ? (
+                      <Box>
+                        <img 
+                          src={previewUrl} 
+                          alt="Preview" 
+                          style={{ 
+                            maxWidth: '100%', 
+                            maxHeight: '300px',
+                            borderRadius: '4px',
+                            marginBottom: '16px'
+                          }} 
+                        />
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                          The system will convert your handwritten math to LaTeX for evaluation.
+                        </Typography>
+                        <Button 
+                          variant="outlined" 
+                          onClick={handleBrowseClick}
+                          disabled={isSubmitting}
+                        >
+                          Change Image
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                          Drag & drop an image or click to browse
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                          Upload an image of your handwritten mathematical solution.
+                          We'll convert it to LaTeX using OCR.
+                        </Typography>
+                        <Button 
+                          variant="contained" 
+                          onClick={handleBrowseClick}
+                          disabled={isSubmitting}
+                        >
+                          Browse Files
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              )}
+            </Box>
             
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                disabled={submitting}
-                startIcon={submitting ? <CircularProgress size={20} /> : null}
+                disabled={isSubmitting || (inputMode === 'text' ? !solutionText.trim() : !selectedFile)}
+                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
               >
-                {submitting ? 'Submitting...' : 'Submit Solution'}
+                {isSubmitting ? 'Submitting...' : 'Submit Solution'}
               </Button>
             </Box>
           </CardContent>
@@ -238,72 +318,66 @@ const ProblemDetail: React.FC = () => {
         <ul>
           <li>
             <Typography variant="body2">
-              For direct input, use LaTeX notation for mathematical expressions.
+              Use LaTeX notation for mathematical expressions or upload an image of your handwritten solution.
             </Typography>
           </li>
           <li>
             <Typography variant="body2">
-              For image submissions, ensure your handwriting is clear and legible.
+              Use $ for inline math (e.g. $x+y=z$) and $$ for display math (e.g. $$\int_a^b f(x)dx$$).
             </Typography>
           </li>
           <li>
             <Typography variant="body2">
-              Show all steps of your solution for better evaluation.
+              Your submission will be evaluated asynchronously.
             </Typography>
           </li>
         </ul>
       </Box>
     );
   };
-  
+
   return (
-    <Box>
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
+    <Paper elevation={2} sx={{ p: { xs: 2, md: 3 } }}>
+      <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+        <Grid item xs={12} md>
+          <Typography variant="h4" component="h1" gutterBottom>
+            {problem.title}
+          </Typography>
+        </Grid>
+        <Grid item xs={12} md="auto">
+          <Chip 
+            label={getDifficultyLabel(problem.difficulty)}
+            size="medium"
+            sx={{ 
+              backgroundColor: getDifficultyColor(problem.difficulty),
+              color: theme.palette.getContrastText(getDifficultyColor(problem.difficulty)),
+              fontWeight: 'bold',
+            }} 
+          />
+        </Grid>
+      </Grid>
+      
+      {problem.topics && problem.topics.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          {problem.topics.map((topic) => (
+            <Chip key={topic} label={topic} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+          ))}
         </Box>
-      ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      ) : problem ? (
-        <>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {problem.title}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-              <Chip
-                label={getDifficultyLabel(problem.difficulty)}
-                sx={{ bgcolor: getDifficultyColor(problem.difficulty), color: 'white' }}
-              />
-              
-              {problem.topics.map((topic) => (
-                <Chip key={topic} label={topic} variant="outlined" />
-              ))}
-            </Box>
-          </Box>
-          
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={activeTab} onChange={handleTabChange} aria-label="problem tabs">
-              <Tab label="Problem" id="problem-tab-0" aria-controls="problem-tabpanel-0" />
-              <Tab label="Submit" id="problem-tab-1" aria-controls="problem-tabpanel-1" />
-            </Tabs>
-          </Box>
-          
-          <Box role="tabpanel" hidden={activeTab !== 0} id="problem-tabpanel-0">
-            {activeTab === 0 && renderProblemTab()}
-          </Box>
-          
-          <Box role="tabpanel" hidden={activeTab !== 1} id="problem-tabpanel-1">
-            {activeTab === 1 && renderSubmissionTab()}
-          </Box>
-        </>
-      ) : (
-        <Alert severity="warning">Problem not found</Alert>
       )}
-    </Box>
+
+      <Divider sx={{ mb: 3 }} />
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={handleTabChange} aria-label="Problem details tabs">
+          <Tab label="Problem Statement" />
+          <Tab label="Submit Solution" />
+        </Tabs>
+      </Box>
+
+      {activeTab === 0 && renderProblemTab()}
+      {activeTab === 1 && renderSubmissionTab()}
+
+    </Paper>
   );
 };
 

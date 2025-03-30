@@ -1,6 +1,15 @@
+/**
+ * @fileoverview Legacy API service functions.
+ * This module contains functions for interacting with the backend API using Axios.
+ * NOTE: This is largely legacy and being replaced by RTK Query hooks defined
+ * in src/store/apis/*.ts. It is primarily kept for compatibility with existing tests.
+ * Consider refactoring tests to mock RTK Query hooks instead.
+ */
 import axios from 'axios';
-// Import types from shared models file
-import { Problem, User, SubmissionData, Submission } from '../models/types';
+// Import types from the /types directory
+import { Problem } from '../types/problem';
+import { User } from '../types/user';
+import { Submission, SubmissionCreate } from '../types/submission';
 // Import mock data generators
 import { generateMockProblems, generateMockSubmission, createMockSubmission } from './mockData';
 
@@ -67,15 +76,15 @@ export const fetchProblemById = async (id: number): Promise<Problem> => {
 };
 
 // Submissions
-export const createSubmission = async (submissionData: SubmissionData): Promise<Submission> => {
+export const createSubmission = async (data: SubmissionCreate): Promise<Submission> => {
   try {
-    const response = await api.post('/api/submissions', submissionData);
+    const response = await api.post('/api/submissions', data);
     return response.data;
   } catch (error) {
     console.error('Error creating submission:', error);
     // For development, return mock data if API fails
     if (process.env.NODE_ENV === 'development') {
-      return createMockSubmission(submissionData);
+      return createMockSubmission(data);
     }
     throw error;
   }
@@ -149,6 +158,6 @@ export const getCurrentUser = async (): Promise<User> => {
 };
 
 // Re-export types for convenience
-export type { Problem, User, SubmissionData, Submission };
+export type { Problem, User, Submission, SubmissionCreate };
 
 export default api; 
