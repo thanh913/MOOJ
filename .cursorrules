@@ -1,7 +1,1 @@
-1.  **Architecture (`docs/architecture.md`):** Consult for system design, component interactions, and data/evaluation flows *before* implementing backend or infrastructure changes.
-2.  **Development Guide (`docs/development.md`):** Refer for coding standards, testing procedures, project structure, and detailed development workflow guidelines.
-3.  **Setup Guide (`docs/setup.md`):** Use for local environment setup instructions and troubleshooting setup-related problems.
-4.  **Usage Guide (`docs/usage.md`):** Reference for understanding end-user features and application flows from a user perspective.
-5.  **Index (`docs/index.md`):** Check for an overview of the documentation structure and links to the specific guides.
-6.  **README (`README.md`):** Use for the primary Quick Start instructions and the main link redirecting to the `/docs` folder.
-7.  **Update Documentation**: After significant feature or architectural changes, update *all* relevant documentation files (`README.md`, `/docs/*.md`) accurately and concisely, ensuring diagrams and workflows remain current. 
+1.  **Start with Index**: When beginning a task; Always begin by consulting `docs/index.md` to understand the documentation structure and find links to specific guides (Architecture, Development, Setup, Usage) before proceeding with development or seeking information. After that, give a summary of what context you have gathered, and how you would use those to proceed. 
