@@ -3,5 +3,6 @@ description:
 globs: 
 alwaysApply: true
 ---
-- Consult `docs/architecture.md` for system design before implementing backend or infrastructure changes.
-- Refer to `docs/development.md` for coding standards, testing procedures, and component-specific guidelines.
+Start with Index:
+- When beginning a task, always begin by consulting docs/index.md to understand the documentation structure and find links to specific guides (Architecture, Development, Setup, Usage) before proceeding with development or seeking information.
+- After that, give a summary of what context you have gathered, and how you would use those to proceed.
