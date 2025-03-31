@@ -54,25 +54,12 @@ const getBackgroundColor = (level: number) => {
   return `${color}33`; // Add 33 for 20% opacity in hex
 };
 
-// Topics available for filtering
-const availableTopics = [
-  'Algebra',
-  'Calculus',
-  'Geometry',
-  'Number Theory',
-  'Combinatorics',
-  'Logic',
-  'Statistics',
-  'Probability',
-  'Linear Algebra',
-  'Discrete Mathematics',
-];
-
 interface ProblemFiltersProps {
   difficultyRange: [number, number];
   setDifficultyRange: React.Dispatch<React.SetStateAction<[number, number]>>;
   selectedTopics: string[];
   setSelectedTopics: React.Dispatch<React.SetStateAction<string[]>>;
+  availableTopics: string[];
   applyFilters: () => void;
   resetFilters: () => void;
 }
@@ -82,6 +69,7 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
   setDifficultyRange,
   selectedTopics,
   setSelectedTopics,
+  availableTopics,
   applyFilters,
   resetFilters,
 }) => {
@@ -90,7 +78,16 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
 
   // Handle difficulty slider change
   const handleDifficultyChange = (event: Event, newValue: number | number[]) => {
-    setDifficultyRange(newValue as [number, number]);
+    // Scale the visual slider value (1-9) to the state value (10-90, or 1-100 for range ends)
+    const scaledValue = Array.isArray(newValue) 
+      ? [newValue[0] * 10, newValue[1] * 10]
+      : newValue * 10;
+    // Clamp the range ends to 1 and 100 if necessary (though scaling 1-9 handles this)
+    // const clampedValue = Array.isArray(scaledValue) 
+    //  ? [Math.max(1, scaledValue[0]), Math.min(100, scaledValue[1])]
+    //  : scaledValue; // No clamping needed for single value?
+      
+    setDifficultyRange(scaledValue as [number, number]); // Update state with 10-100 range
   };
 
   // Handle topic selection
@@ -108,7 +105,9 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
 
   // Get value text for difficulty slider
   const valueLabelFormat = (value: number) => {
-    return difficultyLabels[value as keyof typeof difficultyLabels];
+    // Round to nearest integer for label lookup
+    const roundedValue = Math.round(value);
+    return difficultyLabels[roundedValue as keyof typeof difficultyLabels] ?? value.toString();
   };
 
   return (
@@ -135,17 +134,24 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
               <Typography gutterBottom>Difficulty Range</Typography>
               <Box sx={{ px: 2 }}>
                 <Slider
-                  value={difficultyRange}
+                  value={Array.isArray(difficultyRange) ? [difficultyRange[0] / 10, difficultyRange[1] / 10] : difficultyRange / 10} // Scale state value (10-100) down to visual (1-9)
                   onChange={handleDifficultyChange}
                   valueLabelDisplay="auto"
                   valueLabelFormat={valueLabelFormat}
                   min={1}
                   max={9}
-                  step={1}
-                  marks={Object.entries(difficultyLabels).map(([level, label]) => ({
-                    value: parseInt(level),
-                    label: parseInt(level) % 2 === 1 ? level : '',
-                  }))}
+                  step={0.5} // Change step to 0.5
+                  marks={[
+                    { value: 1, label: '1' }, 
+                    { value: 2, label: '2' },
+                    { value: 3, label: '3' }, 
+                    { value: 4, label: '4' },
+                    { value: 5, label: '5' },
+                    { value: 6, label: '6' },
+                    { value: 7, label: '7' },
+                    { value: 8, label: '8' },
+                    { value: 9, label: '9' }
+                  ]} // Show integer marks 1-9
                   sx={{
                     '& .MuiSlider-thumb': {
                       height: 24,
@@ -180,11 +186,11 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
                 />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                <Typography variant="body2" sx={{ color: getDifficultyColor(difficultyRange[0]) }}>
-                  {difficultyLabels[difficultyRange[0] as keyof typeof difficultyLabels]}
+                <Typography variant="body2" sx={{ color: getDifficultyColor(difficultyRange[0] / 10) }}> {/* Scale down for label lookup */}
+                  {difficultyLabels[Math.round(difficultyRange[0] / 10) as keyof typeof difficultyLabels] ?? 'Unknown'} {/* Cast index */}
                 </Typography>
-                <Typography variant="body2" sx={{ color: getDifficultyColor(difficultyRange[1]) }}>
-                  {difficultyLabels[difficultyRange[1] as keyof typeof difficultyLabels]}
+                <Typography variant="body2" sx={{ color: getDifficultyColor(difficultyRange[1] / 10) }}> {/* Scale down for label lookup */}
+                  {difficultyLabels[Math.round(difficultyRange[1] / 10) as keyof typeof difficultyLabels] ?? 'Unknown'} {/* Cast index */}
                 </Typography>
               </Box>
             </Grid>
@@ -255,14 +261,15 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
       </Collapse>
 
       {/* Active Filter Chips */}
-      {(difficultyRange[0] > 1 || difficultyRange[1] < 9 || selectedTopics.length > 0) && (
+      {(difficultyRange[0] > 10 || difficultyRange[1] < 90) && ( // Adjust chip condition for 10-90 range (allow 1 and 100)
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
           {/* Show difficulty range chip if not default */}
-          {(difficultyRange[0] > 1 || difficultyRange[1] < 9) && (
+          {(difficultyRange[0] > 10 || difficultyRange[1] < 90) && (
             <Chip
               icon={<TuneIcon />}
-              label={`Difficulty: ${difficultyRange[0]}-${difficultyRange[1]}`}
-              onDelete={() => setDifficultyRange([1, 9])}
+              // Display the visual range (1-9)
+              label={`Difficulty: ${(difficultyRange[0] / 10).toFixed(1)}-${(difficultyRange[1] / 10).toFixed(1)}`}
+              onDelete={() => setDifficultyRange([1, 100])} // Reset state to 1-100
               color="primary"
               variant="outlined"
             />
@@ -283,7 +290,7 @@ const ProblemFilters: React.FC<ProblemFiltersProps> = ({
           ))}
 
           {/* Clear all filters button */}
-          {(difficultyRange[0] > 1 || difficultyRange[1] < 9 || selectedTopics.length > 0) && (
+          {(difficultyRange[0] > 10 || difficultyRange[1] < 90 || selectedTopics.length > 0) && ( // Adjust chip condition
             <Chip
               label="Clear All"
               onClick={resetFilters}

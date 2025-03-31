@@ -6,6 +6,7 @@ import Footer from './components/layout/Footer';
 import ProblemList from './pages/ProblemList';
 import ProblemDetail from './pages/ProblemDetail';
 import SubmissionDetail from './pages/SubmissionDetail';
+import MySubmissions from './pages/MySubmissions';
 import theme from './theme';
 
 // Import components here when implemented
@@ -36,6 +37,7 @@ function App() {
             <Route path="/problems" element={<ProblemList />} />
             <Route path="/problems/:id" element={<ProblemDetail />} />
             <Route path="/submissions/:id" element={<SubmissionDetail />} />
+            <Route path="/my-submissions" element={<MySubmissions />} />
             <Route path="*" element={
               <Box sx={{ textAlign: 'center', mt: '5rem' }}> {/* Use Box for styling */}
                 <Typography variant="h1" sx={{ fontSize: '4rem', mb: 2 }}>🔍🐄</Typography>

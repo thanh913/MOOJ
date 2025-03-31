@@ -53,17 +53,14 @@ const difficultyLabels: Record<number, string> = {
 interface ProblemCardProps {
   problem: Problem;
   onClick: (id: number) => void;
-  successRate?: number;
-  attemptCount?: number;
 }
 
 const ProblemCard: React.FC<ProblemCardProps> = ({
   problem,
   onClick,
-  successRate = Math.round(Math.random() * 100), // Mock data, replace with actual data
-  attemptCount = Math.round(Math.random() * 500), // Mock data, replace with actual data
 }) => {
-  const difficultyColor = getDifficultyColor(problem.difficulty);
+  const difficultyColor = getDifficultyColor(problem.difficulty / 10); // Use scaled value for color
+  const scaledDifficulty = problem.difficulty / 10; // Calculate scaled difficulty
   
   // Format date
   const formatDate = (dateString: string): string => {
@@ -101,9 +98,9 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
       >
         <CardContent sx={{ flexGrow: 1, pb: 2 }}>
           {/* Difficulty Badge */}
-          <Tooltip title={difficultyLabels[problem.difficulty]}>
+          <Tooltip title={difficultyLabels[Math.round(scaledDifficulty)] ?? 'Unknown Difficulty'}>
             <DifficultyBadge sx={{ bgcolor: difficultyColor }}>
-              {problem.difficulty}
+              {scaledDifficulty.toFixed(1)}
             </DifficultyBadge>
           </Tooltip>
           
@@ -139,31 +136,32 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           </Box>
           
           {/* Statistics */}
-          <Box sx={{ mt: 'auto' }}>
+          {/* Remove this section as data is not available */}
+          {/* <Box sx={{ mt: 'auto' }}> */}
             {/* Success Rate */}
-            <Box sx={{ mb: 1.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Success Rate
-                </Typography>
-                <Typography variant="body2" fontWeight="medium">
-                  {successRate}%
-                </Typography>
-              </Box>
-              <LinearProgress 
-                variant="determinate" 
-                value={successRate} 
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: 'rgba(0, 0, 0, 0.05)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: successRate > 70 ? '#4caf50' : successRate > 40 ? '#ff9800' : '#f44336',
-                    borderRadius: 3,
-                  },
-                }}
-              />
-            </Box>
+            {/* <Box sx={{ mb: 1.5 }}> */}
+              {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}> */}
+                {/* <Typography variant="body2" color="text.secondary"> */}
+                  {/* Success Rate */}
+                {/* </Typography> */}
+                {/* <Typography variant="body2" fontWeight="medium"> */}
+                  {/* {successRate}% */}
+                {/* </Typography> */}
+              {/* </Box> */}
+              {/* <LinearProgress  */}
+                {/* variant="determinate"  */}
+                {/* value={successRate}  */}
+                {/* sx={{ */} 
+                  {/* height: 6, */}
+                  {/* borderRadius: 3, */}
+                  {/* bgcolor: 'rgba(0, 0, 0, 0.05)', */}
+                  {/* '& .MuiLinearProgress-bar': { */}
+                    {/* bgcolor: successRate > 70 ? '#4caf50' : successRate > 40 ? '#ff9800' : '#f44336', */}
+                    {/* borderRadius: 3, */}
+                  {/* }, */} 
+                {/* }} */} 
+              {/* /> */} 
+            {/* </Box> */} 
             
             {/* Metadata */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
@@ -176,16 +174,17 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
                 </Box>
               </Tooltip>
               
-              <Tooltip title="Attempts">
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AssignmentTurnedInIcon fontSize="small" sx={{ color: 'text.secondary', mr: 0.5, fontSize: '1rem' }} />
-                  <Typography variant="caption" color="text.secondary">
-                    {attemptCount}
-                  </Typography>
-                </Box>
-              </Tooltip>
+              {/* Remove Attempts section */}
+              {/* <Tooltip title="Attempts"> */}
+                {/* <Box sx={{ display: 'flex', alignItems: 'center' }}> */}
+                  {/* <AssignmentTurnedInIcon fontSize="small" sx={{ color: 'text.secondary', mr: 0.5, fontSize: '1rem' }} /> */}
+                  {/* <Typography variant="caption" color="text.secondary"> */}
+                    {/* {attemptCount} */}
+                  {/* </Typography> */}
+                {/* </Box> */}
+              {/* </Tooltip> */}
             </Box>
-          </Box>
+          {/* </Box> */}
         </CardContent>
       </CardActionArea>
     </Card>

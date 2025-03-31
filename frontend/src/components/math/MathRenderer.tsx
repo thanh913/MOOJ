@@ -16,8 +16,8 @@ const renderWithKaTeX = (content: string): JSX.Element[] => {
   const parts = [];
   let currentIndex = 0;
   
-  // Look for block math first ($$..$$)
-  const blockRegex = /\$\$(.*?)\$\$/gs;
+  // Look for block math first (\\[...\\])
+  const blockRegex = /\\\[(.*?)\\\]/g;
   let blockMatch;
   
   while ((blockMatch = blockRegex.exec(content)) !== null) {
@@ -49,10 +49,10 @@ const renderWithKaTeX = (content: string): JSX.Element[] => {
     currentIndex = blockMatch.index + blockMatch[0].length;
   }
   
-  // Handle remaining text and look for inline math ($...$)
+  // Handle remaining text and look for inline math (\\(...\\))
   if (currentIndex < content.length) {
     const remainingContent = content.substring(currentIndex);
-    const inlineRegex = /\$(.*?)\$/g;
+    const inlineRegex = /\\\((.*?)\\\)/g;
     let inlineParts = [];
     let inlineCurrentIndex = 0;
     let inlineMatch;

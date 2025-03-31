@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -44,6 +44,13 @@ const ProblemList: React.FC = () => {
   // State for pagination
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(8);
+  
+  // Calculate unique topics from the fetched problems
+  const uniqueTopics = useMemo(() => {
+    if (!problems) return [];
+    const allTopics = problems.flatMap(p => p.topics ?? []);
+    return Array.from(new Set(allTopics)).sort(); // Use Array.from for better compatibility
+  }, [problems]);
   
   // Apply filters and sorting
   useEffect(() => {
@@ -172,6 +179,7 @@ const ProblemList: React.FC = () => {
           setDifficultyRange={setDifficultyRange}
           selectedTopics={selectedTopics}
           setSelectedTopics={setSelectedTopics}
+          availableTopics={uniqueTopics}
           applyFilters={() => {}} // No-op since filters are applied automatically in useEffect
           resetFilters={handleResetFilters}
         />
