@@ -8,18 +8,35 @@ MOOJ is an online judge platform for mathematics proofs, aiming to provide autom
 
 ## Quick Start (Docker)
 
+### Using Bash (Linux/Mac)
+
 ```bash
 # Ensure Docker & Docker Compose are installed
 # Clone the repository
 cd mooj
 
-# Optional: Seed database
-./seed_problems.sh
-
 # Build and run
 docker compose up --build
 
 # Access: http://localhost:3000
+```
+
+### Using PowerShell (Windows)
+
+```powershell
+# Ensure Docker Desktop is installed and running
+# Clone the repository
+cd mooj
+
+# Deploy locally
+.\scripts\deploy_local.ps1
+
+# Access: http://localhost:3000
+```
+
+To stop the application in PowerShell:
+```powershell
+docker compose down
 ```
 
 ## License
