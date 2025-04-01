@@ -17,6 +17,7 @@ from sqlalchemy import inspect
 from app.db.session import SessionLocal, engine
 from app.db.base_class import Base
 from app.db.models.problem import Problem
+from app.db.models.submission import Submission # Import Submission model
 from app.schemas.problem import ProblemCreate, ProblemBase
 from app.crud.problem import create_problem
 
@@ -24,62 +25,76 @@ from app.crud.problem import create_problem
 PROBLEMS = [
     {
         "id": 1,
-        "title": "Minimizing a Sum",
-        "statement": "Find the minimum value of the function \\( f(x) = x^2 + \\frac{16}{x} \\) for \\( x > 0 \\). Justify your answer using calculus, explaining how you confirmed it's a minimum.",
-        "difficulty": 2.5,  # Using unscaled float values
-        "topics": ["calculus", "optimization", "derivatives"],
+        "title": "Euler Polynomial Composite",
+        "statement": "Find the smallest positive integer \\( n \\) such that the value \\( P(n) = n^2 + n + 41 \\) is a composite number.",
+        "difficulty": 1.5,
+        "topics": ["number theory", "primes"],
         "is_published": True
     },
     {
         "id": 2,
-        "title": "Gradient Descent Step",
-        "statement": "Consider the simple quadratic loss function \\( L(w) = (w - 5)^2 \\). If you are currently at the point \\( w = 1 \\) and perform one step of gradient descent using a learning rate \\( \\alpha = 0.1 \\), what will the new value of \\( w \\) be? Explain the role of the derivative \\( \\frac{dL}{dw} \\) in determining the direction and magnitude of this step.",
-        "difficulty": 2.0,  # Unscaled float
-        "topics": ["calculus", "machine learning", "optimization", "gradient descent", "derivatives"],
+        "title": "Min Value with Constraint",
+        "statement": "Let \\( a \\) and \\( b \\) be positive real numbers such that \\( a+b=1 \\). Find the minimum value of the expression \\( \\left(1 + \\frac{1}{a}\\right)\\left(1 + \\frac{1}{b}\\right) \\).",
+        "difficulty": 2.0,
+        "topics": ["algebra", "inequalities", "AM-GM"],
         "is_published": True
     },
     {
         "id": 3,
-        "title": "Probability Density Normalization",
-        "statement": "A certain random variable \\( X \\) representing model error has a probability density function (PDF) defined as \\( f(x) = k(1 - x^2) \\) for \\( -1 \\le x \\le 1 \\), and \\( f(x) = 0 \\) otherwise. Find the value of the constant \\( k \\) that makes \\( f(x) \\) a valid PDF. Briefly explain the property of PDFs that requires this calculation.",
-        "difficulty": 2.5,  # Unscaled float
-        "topics": ["calculus", "probability", "integrals", "pdf", "machine learning"],
+        "title": "Integer Solutions (Bounded)",
+        "statement": "Find the number of non-negative integer solutions to the equation \\( x_1 + x_2 + x_3 = 15 \\) subject to the constraints \\( x_1 \\le 5 \\), \\( x_2 \\le 7 \\), and \\( x_3 \\le 8 \\).",
+        "difficulty": 4.0,
+        "topics": ["combinatorics", "counting", "inclusion-exclusion"],
         "is_published": True
     },
     {
         "id": 4,
-        "title": "Divisibility by Three",
-        "statement": "Prove that for any integer \\( n \\), the number \\( n^3 - n \\) is always divisible by 3. Explain your reasoning using properties of integers or modular arithmetic.",
-        "difficulty": 2.0,  # Unscaled float
-        "topics": ["number theory", "divisibility", "proof", "modular arithmetic"],
+        "title": "Linear Regression Loss Gradient",
+        "statement": "Consider the squared error loss function \\( L(w_0, w_1) = \\frac{1}{2m} \\sum_{i=1}^{m} (y^{(i)} - (w_0 + w_1 x^{(i)}))^2 \\) for a simple linear regression model \\( \\hat{y} = w_0 + w_1 x \\) and a dataset \\( \\{(x^{(i)}, y^{(i)})\\}_{i=1}^m \\). Calculate the partial derivative of \\( L \\) with respect to the weight \\( w_1 \\), i.e., \\( \\frac{\\partial L}{\\partial w_1} \\).",
+        "difficulty": 3.0,
+        "topics": ["machine learning", "calculus", "linear regression"],
         "is_published": True
     },
     {
         "id": 5,
-        "title": "Pigeonhole Principle Basics",
-        "statement": "In a group of 13 people, must there be at least two people whose birthday falls in the same month? Explain your answer using the Pigeonhole Principle.",
-        "difficulty": 2.0,  # Unscaled float
-        "topics": ["combinatorics", "pigeonhole principle", "logic"],
+        "title": "Expected Value (Biased Coin)",
+        "statement": "A random variable \\( X \\) represents the number of heads obtained in \\( 3 \\) independent flips of a biased coin, where the probability of heads on a single flip is \\( p = 0.6 \\). Calculate the expected value \\( E[X] \\).",
+        "difficulty": 1.5,
+        "topics": ["machine learning", "probability", "expected value"],
         "is_published": True
     },
     {
         "id": 6,
-        "title": "Rectangle to Triangle",
-        "statement": "A rectangle has perimeter 24 cm. What is the maximum possible area of a triangle that can be formed using three of the four vertices of this rectangle? Prove your answer is indeed the maximum possible.",
-        "difficulty": 2.5,  # Unscaled float
-        "topics": ["geometry", "triangle inequality", "optimization"],
+        "title": "Bayes' Theorem Classification",
+        "statement": "A diagnostic test for a rare disease has \\( 99 \\)% sensitivity (true positive rate, \\( P(\\text{Test Positive} | \\text{Disease}) = 0.99 \\)) and \\( 95 \\)% specificity (true negative rate, \\( P(\\text{Test Negative} | \\text{No Disease}) = 0.95 \\)). The disease affects \\( 0.1 \\)% of the population (\\( P(\\text{Disease}) = 0.001 \\)). If a randomly selected person tests positive, what is the probability they actually have the disease, \\( P(\\text{Disease} | \\text{Test Positive}) \\)? Use Bayes' Theorem: \\( P(A|B) = \\frac{P(B|A)P(A)}{P(B)} \\).",
+        "difficulty": 2.0,
+        "topics": ["machine learning", "probability", "Bayes' theorem"],
         "is_published": True
     }
 ]
 
+def drop_tables():
+    """Drop database tables if they exist."""
+    try:
+        print("Dropping existing tables (if any)...")
+        # Import all models that inherit from Base to ensure all tables are considered
+        from app.db import models # Ensure models are loaded
+        # Drop tables in reverse dependency order if needed, or drop all
+        # For simplicity, dropping all. Ensure Base knows about all tables.
+        Base.metadata.drop_all(bind=engine)
+        print("Tables dropped successfully.")
+    except Exception as e:
+        print(f"Error dropping tables: {e}")
+        # Don't raise here, allow create_tables to attempt creation
 
 def create_tables():
     """Create database tables if they don't exist."""
     try:
         inspector = inspect(engine)
+        # Check for a specific table, e.g., problems, as an indicator
         if not inspector.has_table("problems"):
             print("Creating database tables...")
-            # Import all models that inherit from Base
+            # Ensure all models are loaded before creating tables
             from app.db import models  # This imports all models
             Base.metadata.create_all(bind=engine)
             print("Database tables created successfully.")
@@ -89,7 +104,6 @@ def create_tables():
         print(f"Error creating database tables: {e}")
         raise
 
-
 def update_or_create_problems(db: Session) -> None:
     """Update existing problems or create new ones."""
     updated_count = 0
@@ -97,7 +111,13 @@ def update_or_create_problems(db: Session) -> None:
     problems_list = []
     
     try:
-        # Get existing problem IDs
+        # --- Start: Delete existing problems ---
+        deleted_count = db.query(Problem).delete()
+        db.commit()
+        print(f"Successfully deleted {deleted_count} existing problems.")
+        # --- End: Delete existing problems ---
+
+        # Get existing problem IDs (should be empty now, but kept for consistency)
         existing_problem_ids = {p.id for p in db.query(Problem.id).all()}
         
         for problem_data in PROBLEMS:
@@ -123,10 +143,12 @@ def update_or_create_problems(db: Session) -> None:
             problems_list.append(problem)
         
         db.commit()
-        print(f"Successfully updated {updated_count} and created {created_count} problems:")
+        # Adjust log message slightly as all problems are 'created' after deletion
+        print(f"Successfully created {created_count} problems:")
         for problem in problems_list:
             db.refresh(problem)
-            status = "Updated" if problem.id in existing_problem_ids else "Created"
+            # Status will always be 'Created' now after the initial deletion
+            status = "Created"
             print(f"  - {status} ID {problem.id}: {problem.title} (Difficulty: {problem.difficulty:.1f})")
     except Exception as e:
         db.rollback()
@@ -136,7 +158,10 @@ def update_or_create_problems(db: Session) -> None:
 
 if __name__ == "__main__":
     try:
-        # Ensure tables exist
+        # Drop tables first
+        drop_tables()
+        
+        # Ensure tables exist (will create them after dropping)
         create_tables()
         
         # Connect to the database
