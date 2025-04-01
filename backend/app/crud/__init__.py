@@ -5,4 +5,4 @@
 from .problem import get_problem, get_problems, create_problem #, update_problem, delete_problem
 
 # Import submission CRUD
-from .submission import create_submission, get_submission, get_submissions_for_problem, process_appeal
+from .submission import create_submission, get_submission, get_submissions_for_problem

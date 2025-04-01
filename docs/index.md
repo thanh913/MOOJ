@@ -40,4 +40,27 @@ A: The judging workflow is an asynchronous process that starts when a user submi
 A: The evaluation pipeline code is in `backend/app/evaluation/`. Implementation details are in the [Development Guide](./development.md#evaluation-pipeline).
 
 **Q: How do I modify the feedback generation?**  
-A: Feedback generation is handled in the `evaluate_solution` component of the evaluation pipeline. See [Development > Evaluation Pipeline](./development.md#evaluation-pipeline). 
+A: Feedback generation is handled in the `evaluate_solution` component of the evaluation pipeline. See [Development > Evaluation Pipeline](./development.md#evaluation-pipeline).
+
+## Core Guides
+
+*   **[Setup Guide](./setup.md)**
+    *   Instructions for setting up the development environment, running the application using Docker, and configuring necessary services like the database and message queue.
+
+*   **[Usage Guide](./usage.md)**
+    *   How to use the MOOJ platform as an end-user: browsing problems, submitting solutions, understanding results, and using the appeal system.
+
+*   **[Development Guide](./development.md)**
+    *   Information for contributors: project structure, coding standards, frontend/backend details, testing procedures, and guidelines for implementing new features like evaluators.
+
+*   **[Architecture Guide](./architecture.md)**
+    *   Overview of the system's technical architecture: core components, data models, technology stack, and high-level design principles.
+
+*   **[Judging Flow](./judging_flow.md)**
+    *   Detailed explanation of the submission processing lifecycle, including initial evaluation, status transitions, and the complete appeal/re-evaluation workflow.
+
+## Additional Resources
+
+*   **API Documentation**: (Link to Swagger/OpenAPI docs - *to be added*)
+*   **Contributing Guidelines**: (*to be added*)
+*   **License Information**: (*to be added*) 

@@ -16,7 +16,7 @@ def create_sample_problem(db: Session):
     problem = Problem(
         title="Sample Problem",
         statement="Prove that x + 1 = 2 when x = 1.",
-        difficulty=3,
+        difficulty=3.0,
         topics=["algebra", "proof"],
         is_published=True
     )

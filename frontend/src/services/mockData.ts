@@ -52,8 +52,20 @@ const generateMockErrors = (): ErrorDetail[] => {
 
 // Generate a single mock submission
 export const generateMockSubmission = (id: number, problemId?: number): Submission => {
-  const status = faker.helpers.arrayElement<SubmissionStatus>([SubmissionStatus.Pending, SubmissionStatus.Processing, SubmissionStatus.Completed, SubmissionStatus.Failed]);
-  const errors = status === SubmissionStatus.Completed || status === SubmissionStatus.Failed ? generateMockErrors() : [];
+  const status = faker.helpers.arrayElement<SubmissionStatus>([
+    SubmissionStatus.Pending, 
+    SubmissionStatus.Processing, 
+    SubmissionStatus.Completed, 
+    SubmissionStatus.EvaluationError,
+    SubmissionStatus.Appealing
+  ]);
+  
+  const errors = [
+    SubmissionStatus.Completed, 
+    SubmissionStatus.EvaluationError, 
+    SubmissionStatus.Appealing
+  ].includes(status) ? generateMockErrors() : [];
+  
   const score = status === SubmissionStatus.Completed ? faker.number.int({ min: 0, max: 100 }) : undefined;
   const feedback = status === SubmissionStatus.Completed ? `# Mock Feedback\n\n${faker.lorem.paragraph()}` : undefined;
 
@@ -66,6 +78,7 @@ export const generateMockSubmission = (id: number, problemId?: number): Submissi
     score: score,
     feedback: feedback,
     errors: errors,
+    appeal_attempts: status === SubmissionStatus.Appealing ? faker.number.int({ min: 0, max: 4 }) : 0,
   };
 };
 
@@ -78,10 +91,11 @@ export const createMockSubmission = (data: SubmissionCreate): Submission => {
     problem_id: data.problem_id,
     solution_text: data.solution_text,
     submitted_at: new Date().toISOString(),
-    status: SubmissionStatus.Pending, // Starts as pending
+    status: SubmissionStatus.Pending, // Always starts as pending
     score: undefined,
     feedback: undefined,
     errors: [],
+    appeal_attempts: 0,
   };
 };
 

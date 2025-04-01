@@ -26,7 +26,7 @@ PROBLEMS = [
         "id": 1,
         "title": "Minimizing a Sum",
         "statement": "Find the minimum value of the function \\( f(x) = x^2 + \\frac{16}{x} \\) for \\( x > 0 \\). Justify your answer using calculus, explaining how you confirmed it's a minimum.",
-        "difficulty": 25,  # Using 10x scale for more granularity (2.5)
+        "difficulty": 2.5,  # Using unscaled float values
         "topics": ["calculus", "optimization", "derivatives"],
         "is_published": True
     },
@@ -34,7 +34,7 @@ PROBLEMS = [
         "id": 2,
         "title": "Gradient Descent Step",
         "statement": "Consider the simple quadratic loss function \\( L(w) = (w - 5)^2 \\). If you are currently at the point \\( w = 1 \\) and perform one step of gradient descent using a learning rate \\( \\alpha = 0.1 \\), what will the new value of \\( w \\) be? Explain the role of the derivative \\( \\frac{dL}{dw} \\) in determining the direction and magnitude of this step.",
-        "difficulty": 20,  # 2.0
+        "difficulty": 2.0,  # Unscaled float
         "topics": ["calculus", "machine learning", "optimization", "gradient descent", "derivatives"],
         "is_published": True
     },
@@ -42,7 +42,7 @@ PROBLEMS = [
         "id": 3,
         "title": "Probability Density Normalization",
         "statement": "A certain random variable \\( X \\) representing model error has a probability density function (PDF) defined as \\( f(x) = k(1 - x^2) \\) for \\( -1 \\le x \\le 1 \\), and \\( f(x) = 0 \\) otherwise. Find the value of the constant \\( k \\) that makes \\( f(x) \\) a valid PDF. Briefly explain the property of PDFs that requires this calculation.",
-        "difficulty": 25,  # 2.5
+        "difficulty": 2.5,  # Unscaled float
         "topics": ["calculus", "probability", "integrals", "pdf", "machine learning"],
         "is_published": True
     },
@@ -50,7 +50,7 @@ PROBLEMS = [
         "id": 4,
         "title": "Divisibility by Three",
         "statement": "Prove that for any integer \\( n \\), the number \\( n^3 - n \\) is always divisible by 3. Explain your reasoning using properties of integers or modular arithmetic.",
-        "difficulty": 20,  # 2.0
+        "difficulty": 2.0,  # Unscaled float
         "topics": ["number theory", "divisibility", "proof", "modular arithmetic"],
         "is_published": True
     },
@@ -58,7 +58,7 @@ PROBLEMS = [
         "id": 5,
         "title": "Pigeonhole Principle Basics",
         "statement": "In a group of 13 people, must there be at least two people whose birthday falls in the same month? Explain your answer using the Pigeonhole Principle.",
-        "difficulty": 20,  # 2.0
+        "difficulty": 2.0,  # Unscaled float
         "topics": ["combinatorics", "pigeonhole principle", "logic"],
         "is_published": True
     },
@@ -66,7 +66,7 @@ PROBLEMS = [
         "id": 6,
         "title": "Rectangle to Triangle",
         "statement": "A rectangle has perimeter 24 cm. What is the maximum possible area of a triangle that can be formed using three of the four vertices of this rectangle? Prove your answer is indeed the maximum possible.",
-        "difficulty": 25,  # 2.5
+        "difficulty": 2.5,  # Unscaled float
         "topics": ["geometry", "triangle inequality", "optimization"],
         "is_published": True
     }
@@ -127,7 +127,7 @@ def update_or_create_problems(db: Session) -> None:
         for problem in problems_list:
             db.refresh(problem)
             status = "Updated" if problem.id in existing_problem_ids else "Created"
-            print(f"  - {status} ID {problem.id}: {problem.title} (Difficulty: {problem.difficulty/10:.1f})")
+            print(f"  - {status} ID {problem.id}: {problem.title} (Difficulty: {problem.difficulty:.1f})")
     except Exception as e:
         db.rollback()
         print(f"Error while updating/creating problems: {e}")

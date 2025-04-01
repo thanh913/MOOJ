@@ -1,7 +1,12 @@
-pika
-SQLAlchemy
-psycopg2-binary
-python-dotenv # For loading environment variables if needed
+pika==1.2.0
+SQLAlchemy==2.0.22
+python-dotenv==0.21.0
+psycopg2-binary==2.9.9
+requests==2.28.1
+tenacity==8.1.0
 pydantic==2.4.2
 pydantic-settings==2.0.3
+pytesseract==0.3.10
+opencv-python==4.8.1.78
+pillow==10.1.0
 # Add more dependencies as needed for the worker

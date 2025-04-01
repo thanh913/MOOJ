@@ -13,6 +13,7 @@ import {
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import { Problem } from '../../types/problem';
+import { getDifficultyColor, getDifficultyLabel } from '../../utils/problemUtils'; // Import centralized functions
 
 // Styled components for visual elements
 const DifficultyBadge = styled(Box)(({ theme }) => ({
@@ -30,26 +31,6 @@ const DifficultyBadge = styled(Box)(({ theme }) => ({
   boxShadow: theme.shadows[2],
 }));
 
-// Get difficulty color based on level
-const getDifficultyColor = (level: number): string => {
-  if (level <= 3) return '#4caf50'; // Easy (1-3)
-  if (level <= 6) return '#ff9800'; // Medium (4-6)
-  return '#f44336'; // Hard (7-9)
-};
-
-// Map of difficulty levels to labels
-const difficultyLabels: Record<number, string> = {
-  1: 'Very Easy',
-  2: 'Easy',
-  3: 'Somewhat Easy',
-  4: 'Medium-Easy',
-  5: 'Medium',
-  6: 'Medium-Hard',
-  7: 'Somewhat Hard',
-  8: 'Hard',
-  9: 'Very Hard',
-};
-
 interface ProblemCardProps {
   problem: Problem;
   onClick: (id: number) => void;
@@ -59,8 +40,8 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
   problem,
   onClick,
 }) => {
-  const difficultyColor = getDifficultyColor(problem.difficulty / 10); // Use scaled value for color
-  const scaledDifficulty = problem.difficulty / 10; // Calculate scaled difficulty
+  const difficultyColor = getDifficultyColor(problem.difficulty);
+  const difficultyLabel = getDifficultyLabel(problem.difficulty);
   
   // Format date
   const formatDate = (dateString: string): string => {
@@ -98,9 +79,9 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
       >
         <CardContent sx={{ flexGrow: 1, pb: 2 }}>
           {/* Difficulty Badge */}
-          <Tooltip title={difficultyLabels[Math.round(scaledDifficulty)] ?? 'Unknown Difficulty'}>
+          <Tooltip title={`${difficultyLabel} (${problem.difficulty.toFixed(1)})`}>
             <DifficultyBadge sx={{ bgcolor: difficultyColor }}>
-              {scaledDifficulty.toFixed(1)}
+              {problem.difficulty.toFixed(1)}
             </DifficultyBadge>
           </Tooltip>
           

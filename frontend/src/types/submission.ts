@@ -4,8 +4,9 @@ import { Problem } from './problem'; // Import if needed for nested data later
 export enum SubmissionStatus {
     Pending = "pending",
     Processing = "processing",
+    Appealing = "appealing",
     Completed = "completed",
-    Failed = "failed",
+    EvaluationError = "evaluation_error",
 }
 
 // Matches backend ErrorDetail schema
@@ -15,7 +16,7 @@ export interface ErrorDetail {
     location?: string;
     description: string;
     severity?: string;
-    status?: 'active' | 'appealed' | 'overturned' | 'rejected';
+    status?: 'active' | 'appealing' | 'resolved' | 'rejected' | 'overturned';
 }
 
 // Interface for Submission data returned from API (matches backend response schema)
@@ -28,6 +29,7 @@ export interface Submission {
     score?: number;
     feedback?: string;
     errors?: ErrorDetail[];
+    appeal_attempts: number;
     // problem?: Problem; // Optional: Include if API response nests problem data
 }
 
@@ -35,6 +37,17 @@ export interface Submission {
 export interface SubmissionCreate {
     problem_id: number;
     solution_text: string;
+}
+
+// Interface for submitting a batch appeal
+export interface ErrorAppeal {
+    error_id: string;
+    justification: string;
+    image_justification?: string; // Optional base64-encoded image data
+}
+
+export interface MultiAppealCreate {
+    appeals: ErrorAppeal[];
 }
 
 // Optional: Interface for appeal payload (Add later)

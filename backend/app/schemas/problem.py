@@ -6,7 +6,7 @@ from typing import List, Optional
 class ProblemBase(BaseModel):
     title: str
     statement: str
-    difficulty: int
+    difficulty: float
     topics: Optional[List[str]] = None
     is_published: bool = False
 

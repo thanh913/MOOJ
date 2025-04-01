@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, String, Integer, DateTime, Enum, Text, ForeignKey, ARRAY, JSON
+from sqlalchemy import Boolean, Column, String, Integer, DateTime, Enum, Text, ForeignKey, ARRAY, JSON, Float
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -23,7 +23,7 @@ class Problem(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     statement = Column(Text)
-    difficulty = Column(Integer)  # 1-9 difficulty level
+    difficulty = Column(Float)  # 1-9 difficulty level (float values)
     topics = Column(JSON)  # Array of mathematical topics stored as JSON
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

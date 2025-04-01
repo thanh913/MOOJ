@@ -6,7 +6,7 @@ from datetime import datetime
 class ProblemBase(BaseModel):
     title: str
     statement: str
-    difficulty: int  # 1-9
+    difficulty: float  # 1-9 range, can have decimal values
     topics: List[str]
     is_published: bool = False
 
@@ -18,7 +18,7 @@ class ProblemCreate(ProblemBase):
 class ProblemUpdate(BaseModel):
     title: Optional[str] = None
     statement: Optional[str] = None
-    difficulty: Optional[int] = None
+    difficulty: Optional[float] = None
     topics: Optional[List[str]] = None
     is_published: Optional[bool] = None
 

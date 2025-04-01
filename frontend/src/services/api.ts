@@ -10,8 +10,6 @@ import axios from 'axios';
 import { Problem } from '../types/problem';
 import { User } from '../types/user';
 import { Submission, SubmissionCreate } from '../types/submission';
-// Import mock data generators
-import { generateMockProblems, generateMockSubmission, createMockSubmission } from './mockData';
 
 // Set base URL from environment variable or use default
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -51,10 +49,6 @@ export const fetchProblems = async (filters = {}): Promise<Problem[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching problems:', error);
-    // For development, return mock data if API fails
-    if (process.env.NODE_ENV === 'development') {
-      return generateMockProblems();
-    }
     throw error;
   }
 };
@@ -65,12 +59,6 @@ export const fetchProblemById = async (id: number): Promise<Problem> => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching problem ${id}:`, error);
-    // For development, return mock data if API fails
-    if (process.env.NODE_ENV === 'development') {
-      const mockProblems = generateMockProblems();
-      const problem = mockProblems.find(p => p.id === id);
-      if (problem) return problem;
-    }
     throw error;
   }
 };
@@ -82,10 +70,6 @@ export const createSubmission = async (data: SubmissionCreate): Promise<Submissi
     return response.data;
   } catch (error) {
     console.error('Error creating submission:', error);
-    // For development, return mock data if API fails
-    if (process.env.NODE_ENV === 'development') {
-      return createMockSubmission(data);
-    }
     throw error;
   }
 };
@@ -96,10 +80,6 @@ export const fetchSubmissionById = async (id: number): Promise<Submission> => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching submission ${id}:`, error);
-    // For development, return mock data if API fails
-    if (process.env.NODE_ENV === 'development') {
-      return generateMockSubmission(id);
-    }
     throw error;
   }
 };

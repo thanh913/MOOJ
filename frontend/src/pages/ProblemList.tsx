@@ -36,7 +36,7 @@ const ProblemList: React.FC = () => {
   // State for filtering/sorting options
   const [filteredProblems, setFilteredProblems] = useState<Problem[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [difficultyRange, setDifficultyRange] = useState<[number, number]>([1, 100]);
+  const [difficultyRange, setDifficultyRange] = useState<[number, number]>([1, 9]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>('difficulty');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -120,7 +120,7 @@ const ProblemList: React.FC = () => {
   
   // Handle filter reset
   const handleResetFilters = () => {
-    setDifficultyRange([1, 100]);
+    setDifficultyRange([1, 9]);
     setSelectedTopics([]);
     setSearchQuery('');
   };

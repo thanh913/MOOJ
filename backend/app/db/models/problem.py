@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -10,7 +10,7 @@ class Problem(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     statement = Column(Text, nullable=False)
-    difficulty = Column(Integer, nullable=False)
+    difficulty = Column(Float, nullable=False)
     topics = Column(JSON)  # Use JSON for list data
     is_published = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

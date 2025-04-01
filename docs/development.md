@@ -51,6 +51,25 @@ See [Architecture](./architecture.md) for component details.
 *   **Types**: Use TypeScript effectively (`src/types/`).
 *   **Testing**: React Testing Library.
 
+### Problem Difficulty
+
+Problem difficulty in MOOJ is stored as float values in the range of 1.0 to 9.0. This scale is used consistently across the backend and frontend. The frontend displays these values directly without scaling.
+
+The scale is defined as follows (with suggested color coding):
+
+- **1.0 - 1.5: Easy (Green)**
+  - *Description:* Requires direct application of a definition, formula, or algorithm.
+- **2.0 - 3.5: Intermediate (Blue)**
+  - *Description:* Involves standard multi-step procedures or predictable combination of concepts.
+- **4.0 - 6.0: Advanced (Yellow)**
+  - *Description:* Needs synthesis of distinct concepts or creative adaptation of standard techniques.
+- **6.5 - 8.0: Expert (Red)**
+  - *Description:* Demands strategic application of advanced techniques, significant synthesis, or key insights.
+- **8.5 - 9.0: Master (Deep Red)**
+  - *Description:* Requires deep insight, novel strategies, synthesis across advanced fields, or high technicality.
+
+See the [Usage Guide](./usage.md#creating-a-new-problem) for more detailed examples for each tier.
+
 ## Backend Details (FastAPI)
 
 *   **Structure**: `backend/app/` (api, crud, db, schemas, services).
@@ -112,72 +131,223 @@ if not item:
 
 ### Evaluation Pipeline
 
-The evaluation pipeline is the core of MOOJ's functionality, responsible for processing and evaluating mathematical proofs. This section provides implementation details for developers working on this component.
+The evaluation pipeline processes and evaluates mathematical proofs using a modular, extensible architecture that allows for different evaluation strategies.
 
-#### Pipeline Structure
+**See Also:**
+- [Architecture > Judging Flow](./architecture.md#judging-flow) for the high-level workflow and component overview.
 
-The evaluation pipeline consists of four main components:
+#### Evaluator Interface (`backend/app/evaluation/interfaces.py`)
 
-1. **`image_to_LaTeX`** - Converts image submissions to LaTeX text format
-2. **`find_all_errors`** - Analyzes LaTeX proof for logical and mathematical errors
-3. **`evaluate_solution`** - Generates score and feedback based on detected errors
-4. **`return_evaluation`** - Orchestrates the entire evaluation process and formats results
-
-#### Current Implementation
+The core of the system is an interface that all evaluator implementations must follow:
 
 ```python
-# Simplified implementation (see actual code for details)
-async def return_evaluation(submission_id: int, db: Session):
-    submission = crud.submission.get(db, id=submission_id)
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any
+
+# Assuming models and schemas are importable or defined elsewhere
+# from app.db import models
+# from app.schemas import ErrorAppeal
+
+class BaseEvaluator(ABC):
+    """Base class that all evaluators must implement."""
     
-    if submission.input_type == InputType.IMAGE:
-        latex_text = await image_to_LaTeX(submission.content)
-    else:
-        latex_text = submission.content
-    
-    errors = find_all_errors(latex_text, submission.problem_id)
-    result = evaluate_solution(errors)
-    
-    # Update submission in database
-    crud.submission.update(
-        db, 
-        db_obj=submission,
-        obj_in={
-            "status": SubmissionStatus.COMPLETED,
-            "score": result.score,
-            "feedback": result.feedback,
-            "errors": result.errors
-        }
-    )
-    
-    return result
+    @abstractmethod
+    def find_errors(self, solution_text: str, problem_id: int, # Potentially add problem context if needed
+                      submission: models.Submission) -> List[ErrorDetail]:
+        """Analyze a solution and identify errors."""
+        pass
+        
+    @abstractmethod
+    def evaluate(self, errors: List[ErrorDetail], submission: models.Submission, 
+                 problem: models.Problem) -> EvaluationResult:
+        """Generate an evaluation result based on current errors.
+           Considers active and rejected errors.
+        """
+        pass
+        
+    @abstractmethod
+    def process_appeal(self, appeals: List[ErrorAppeal], 
+                       submission: models.Submission, 
+                       problem: models.Problem) -> None: # Or return updated errors list
+        """Process a batch of appeals for a submission.
+           Should update the status of errors within the submission.errors list.
+        """
+        pass
+        
+    @classmethod
+    @abstractmethod
+    def get_evaluator_info(cls) -> Dict[str, Any]:
+        """Return metadata about this evaluator."""
+        pass
 ```
+
+*Note: The exact return type and parameter types for context (`submission`, `problem`) might need adjustment based on actual implementation details and imports.* 
+
+#### Evaluator Router (`backend/app/evaluation/router.py`)
+
+The router component selects the appropriate evaluator implementation based on configuration and delegates calls to the chosen evaluator instance, adapting arguments as needed for the `BaseEvaluator` interface.
+
+#### Placeholder Evaluator Implementation
+
+The placeholder evaluator provides a simple implementation that generates random errors and processes appeals:
+
+```python
+class PlaceholderEvaluator(BaseEvaluator):
+    """Placeholder implementation that generates random errors."""
+    
+    def find_errors(self, solution_text: str, problem_id: int) -> List[ErrorDetail]:
+        """Generate 0-4 random errors."""
+        # Generate random number of errors (0-4)
+        num_errors = random.randint(0, 4)
+        
+        errors = []
+        for i in range(num_errors):
+            errors.append({
+                "id": f"err-{uuid.uuid4()}",
+                "description": f"Error in your solution: {random.choice(self.ERROR_MESSAGES)}",
+                "severity": random.choice([True, False]),  # True = non_trivial, False = trivial
+                "status": "active"
+            })
+            
+        return errors
+        
+    def evaluate(self, errors: List[ErrorDetail], solution_text: str, problem_id: int) -> EvaluationResult:
+        """Generate evaluation based on errors."""
+        # Success if no non-trivial errors
+        has_non_trivial = any(error["severity"] for error in errors)
+        
+        return {
+            "status": "failure" if has_non_trivial else "success",
+            "score": 0 if has_non_trivial else 100,
+            "errors": errors
+        }
+        
+    def process_appeal(self, error_id: str, justification: str) -> AppealResult:
+        """Process an appeal with random chance of success."""
+        # Require justification
+        if not justification or len(justification.strip()) < 5:
+            return {
+                "success": False,
+                "error": {
+                    "id": error_id,
+                    "status": "rejected",
+                    "description": "Appeal rejected: No justification provided",
+                    "severity": True  # Non-trivial
+                }
+            }
+            
+        # 50% chance of success if justification provided
+        success = random.random() > 0.5
+        
+        return {
+            "success": success,
+            "error": {
+                "id": error_id,
+                "status": "resolved" if success else "rejected",
+                "description": "Original error description",
+                "severity": True if not success else False  # Downgrade severity if successful
+            }
+        }
+        
+    @classmethod
+    def get_evaluator_info(cls) -> Dict[str, Any]:
+        """Return metadata about this evaluator."""
+        return {
+            "name": "placeholder",
+            "version": "1.0.0",
+            "description": "Placeholder evaluator that generates random errors and processes appeals",
+            "capabilities": ["error_generation", "appeal_processing"]
+        }
+        
+    # Sample error messages
+    ERROR_MESSAGES = [
+        "Incorrect application of the chain rule",
+        "Missing step in your proof",
+        "Logical fallacy in your reasoning",
+        "Incorrect formula used",
+        "Calculation error",
+        # Add more as needed
+    ]
+```
+
+#### Directory Structure
+
+The evaluation pipeline is organized in a modular structure where each file corresponds to a specific functionality:
+
+```
+backend/app/evaluation/
+├── __init__.py             # Public exports
+├── interfaces.py           # Type definitions and interfaces
+├── router.py               # Evaluator selection logic
+├── utils.py                # Shared utilities
+├── config.py               # Configuration system
+└── evaluators/             # Evaluator implementations
+    ├── __init__.py         # Exports available evaluators
+    ├── base.py             # Abstract base class for evaluators 
+    └── placeholder/        # Placeholder implementation
+        ├── __init__.py     # Package exports
+        ├── evaluator.py    # Main evaluator class that combines components
+        ├── find_errors.py  # Implementation of find_errors method
+        ├── evaluate.py     # Implementation of evaluate method
+        └── appeal.py       # Implementation of process_appeal method
+```
+
+Each evaluator implementation follows this pattern where filenames directly correspond to the abstract methods defined in `BaseEvaluator`, providing a clear and maintainable structure.
 
 #### Implementation Requirements
 
-When working on the evaluation pipeline, follow these guidelines:
+When working on the evaluation pipeline, adhere to:
 
-- **Asynchronous Processing**: Use `async`/`await` for I/O-bound operations
-- **Error Handling**: Implement comprehensive error handling and logging
-- **Retry Logic**: Add appropriate retries for external service calls
-- **Test Coverage**: Include unit tests for each component
-- **Input Validation**: Validate all inputs before processing
+- **Method-to-File Mapping**: Each abstract method in `BaseEvaluator` should have a corresponding implementation file.
+- **Interface Compliance**: All evaluators must implement the BaseEvaluator interface.
+- **Error Format**: Use the standardized ErrorDetail format for all errors.
+- **Appeal Support**: All evaluators must implement appeal processing.
+- **Testing**: Each evaluator component should have dedicated tests.
+- **Configuration**: Evaluators should be configurable without code changes.
 
-#### Integration with Future Judge Worker
+#### Implementing a New Evaluator
 
-In the target architecture, this pipeline will be moved to a separate Judge Worker service:
+To add a new evaluator:
 
-1. The Backend API will publish a task to RabbitMQ
-2. The Judge Worker will consume the task and run the evaluation pipeline
-3. Results will be written back to the database
+1. Create a new directory in `evaluators/` (e.g., `evaluators/new_evaluator/`)
+2. Create implementation files for each method:
+   - `find_errors.py` - For analyzing solutions and finding errors
+   - `evaluate.py` - For generating evaluation results
+   - `appeal.py` - For processing appeals
+3. Create a main `evaluator.py` file that combines these components:
 
-#### Database Schema Integration
+```python
+class NewEvaluator(BaseEvaluator):
+    def __init__(self):
+        # Initialize with configuration
+        config = get_evaluator_config()
+        self.config = config.get("new_evaluator", {})
+    
+    def find_errors(self, solution_text: str, problem_id: int) -> List[ErrorDetail]:
+        # Delegate to the dedicated implementation file
+        return find_errors_impl(solution_text, problem_id, self.config)
+    
+    def evaluate(self, errors: List[ErrorDetail], solution_text: str, problem_id: int) -> EvaluationResult:
+        # Delegate to the dedicated implementation file
+        return evaluate_impl(errors, solution_text, problem_id, self.config)
+    
+    def process_appeal(self, error_id: str, justification: str, submission_id: int) -> AppealResult:
+        # Delegate to the dedicated implementation file
+        return process_appeal_impl(error_id, justification, submission_id, self.config)
+    
+    @classmethod
+    def get_evaluator_info(cls) -> Dict[str, Any]:
+        return {
+            "name": "new_evaluator",
+            "version": "1.0.0",
+            "description": "New evaluator implementation",
+            "capabilities": ["capabilities", "go", "here"]
+        }
+```
 
-The evaluation pipeline interacts with these database models:
-
-- **Problem**: Contains the problem statement and expected solution structure
-- **Submission**: Stores the user's submission and evaluation results
-- **Error**: Represents individual errors found in the submission
+4. Update the router in `router.py` to include the new evaluator
+5. Add configuration for the new evaluator in `config.py`
+6. Write tests for the new evaluator
 
 ### Performance Considerations
 
@@ -188,13 +358,16 @@ The evaluation pipeline interacts with these database models:
 
 ### Backend File Organization
 
-Follow these patterns for adding new files:
+Refer to the [System Architecture > Backend Directory Structure](./architecture.md#backend-directory-structure) for the standard project layout.
+
+Follow these patterns when adding new files:
 
 - API endpoints: `app/api/v1/endpoints/{resource}.py`
 - Database models: `app/db/models/{model}.py`
 - Schemas: `app/schemas/{schema}.py`
 - CRUD operations: `app/crud/{resource}.py`
-- Tests: `app/tests/{module}_{test_type}.py`
+- Evaluation logic: `app/evaluation/{component}.py`
+- Tests: `app/tests/{module}/{test_type}.py` (e.g., `tests/evaluation/test_pipeline.py`)
 
 ## Testing (Backend - Pytest)
 

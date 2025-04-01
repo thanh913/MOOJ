@@ -1,29 +1,26 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query/react';
 // Remove authReducer import
 // import authReducer, { AuthState } from './slices/authSlice'; 
 import { baseApi } from './api'; // Import the api slice
+import { submissionsApi } from './apis/submissionsApi'; // Import the submissions API
 
-// Define the reducer map - remove auth
-const reducerMap = {
-  // auth: authReducer, 
-  [baseApi.reducerPath]: baseApi.reducer,
-};
-
-// Combine reducers (no explicit typing)
-const rootReducer = combineReducers(reducerMap);
-
-// Configure the store
+// Configure the store with all necessary reducers and middleware
 export const store = configureStore({
-  reducer: rootReducer,
-  // Use type assertion to bypass TypeScript checking (keeping for now)
-  middleware: getDefaultMiddleware => 
-    getDefaultMiddleware().concat(baseApi.middleware) as any,
+  reducer: {
+    // auth: authReducer, 
+    [baseApi.reducerPath]: baseApi.reducer,
+    [submissionsApi.reducerPath]: submissionsApi.reducer, // Add submissions API reducer
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .concat(baseApi.middleware)
+      .concat(submissionsApi.middleware),
 });
 
-// Infer RootState and AppDispatch from the store itself
+// Enable refetchOnFocus and refetchOnReconnect behaviors
+setupListeners(store.dispatch);
+
+// Infer types from the store
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-
-// Optional, but required for refetchOnFocus/refetchOnReconnect behaviors
-setupListeners(store.dispatch);

@@ -79,29 +79,22 @@ export const MooError: React.FC<{ message?: string }> = ({ message = 'Something 
 
 // Get the appropriate Moo mascot based on submission status and score
 export const getSubmissionMoo = (status: string, score?: number) => {
-  if (status === 'completed' && score !== undefined) {
-    if (score >= 90) {
-      return {
-        emoji: '🥳🐄',
-        message: 'Excellent work! Your solution is correct!'
-      };
-    } else if (score >= 70) {
-      return {
-        emoji: '😊🐄',
-        message: 'Good job! Your solution is mostly correct with a few issues.'
-      };
-    } else if (score >= 50) {
-      return {
-        emoji: '🤔🐄',
-        message: 'Your solution has some correct elements but needs improvement.'
-      };
-    } else {
-      return {
-        emoji: '😕🐄',
-        message: 'Your solution has several issues that need to be addressed.'
-      };
+  if (status === 'completed') {
+    if (score === undefined) {
+      // Should ideally not happen, but handle gracefully
+      return { emoji: '🤔🐄', message: 'Evaluation complete.' };
     }
-  } else if (status === 'failed') {
+    if (score >= 90) {
+      return { emoji: '🥳🐄', message: 'Excellent work! Your solution is correct!' };
+    } else if (score >= 70) {
+      return { emoji: '😊🐄', message: 'Good job! Solution is mostly correct.' };
+    } else if (score >= 50) {
+      return { emoji: '🤔🐄', message: 'Solution has some correct elements, but needs improvement.' };
+    } else {
+      // Completed, but low score (potentially after rejected appeals)
+      return { emoji: '😕🐄', message: 'Completed, but significant errors remain.' };
+    }
+  } else if (status === 'failed' || status === 'evaluation_error') {
     return {
       emoji: '😓🐄',
       message: 'There was an issue evaluating your submission. Please try again.'
@@ -111,10 +104,21 @@ export const getSubmissionMoo = (status: string, score?: number) => {
       emoji: '⏳🐄',
       message: 'Your submission is being processed...'
     };
-  } else {
+  } else if (status === 'pending') {
     return {
       emoji: '🐄',
       message: 'Your submission is waiting to be evaluated.'
+    };
+  } else if (status === 'appealing') {
+    return {
+      emoji: '🤔🐄',
+      message: 'Review the feedback & decide whether to appeal or accept score.'
+    };
+  } else {
+    // Default case for any other status
+    return {
+      emoji: '🐄',
+      message: 'Your submission has been received.'
     };
   }
 }; 

@@ -9,7 +9,7 @@
 from .problem import Problem, ProblemCreate
 
 # Submission
-from .submission import Submission, SubmissionCreate, AppealCreate
+from .submission import Submission, SubmissionCreate, AppealCreate, MultiAppealCreate
 
 # Submission (Keep if exists and relevant)
 # from .submission import Submission, SubmissionCreate, ...

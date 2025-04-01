@@ -32,9 +32,9 @@ flowchart LR
 ### Components Summary
 
 *   **Frontend**: React (MUI, Redux Toolkit/RTK Query) for UI, interacts with Backend API.
-*   **Backend API**: FastAPI (Python, SQLAlchemy, Pydantic) handles requests, manages submission metadata, publishes tasks to MQ.
+*   **Backend API**: FastAPI (Python, SQLAlchemy, Pydantic) handles requests, manages submission metadata, publishes tasks to MQ, handles appeal requests.
 *   **Message Broker**: RabbitMQ decouples API from Worker, handles `evaluation_queue`.
-*   **Judge Worker**: Python service consumes tasks from MQ, performs evaluation, updates DB.
+*   **Judge Worker**: Python service consumes tasks from MQ, performs initial evaluation (`find_errors`), updates DB.
 *   **Database**: PostgreSQL stores problems, submissions, results, user data.
 
 #### Backend Directory Structure
@@ -84,104 +84,131 @@ backend/
 - OpenCV and Tesseract for image processing
 - Pytest for testing
 
-## Data Flow & Evaluation Pipeline
+### Data Models
 
-The evaluation pipeline is the core of MOOJ's functionality, handling the asynchronous submission and evaluation workflow.
+#### Problem Model
 
-### Submission Flow
+The core data entity for mathematical problems:
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant BackendAPI
-    participant RabbitMQ
-    participant JudgeWorker
-    participant Database
+```python
+class Problem(Base):
+    __tablename__ = "problems"
 
-    User->>Frontend: Submits Solution (LaTeX/Image)
-    Frontend->>BackendAPI: POST /api/v1/submissions
-    BackendAPI->>Database: Create Submission (status=pending)
-    Database-->>BackendAPI: Return submission_id
-    BackendAPI->>RabbitMQ: Publish {submission_id} to evaluation_queue
-    BackendAPI-->>Frontend: Respond 202 Accepted (with submission_id)
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True, nullable=False)
+    statement = Column(Text, nullable=False)
+    difficulty = Column(Float, nullable=False)  # 1.0-9.0 scale
+    topics = Column(JSON)  # List of topics as JSON
+    is_published = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
-    Frontend->>User: Redirect to Submission Detail Page
-    loop Poll Status
-        Frontend->>BackendAPI: GET /api/v1/submissions/{id}
-        BackendAPI->>Database: Read Submission Status
-        Database-->>BackendAPI: Return Current Status
-        BackendAPI-->>Frontend: Return Submission Data
-    end
-
-    JudgeWorker->>RabbitMQ: Consume Task {submission_id}
-    JudgeWorker->>Database: Read Submission Data (using submission_id)
-    Database-->>JudgeWorker: Return Submission Data
-    Note over JudgeWorker: Perform Evaluation (Mock/LLM)
-    JudgeWorker->>Database: Update Submission (status=completed/failed, score, feedback, errors)
+    # Relationships
+    submissions = relationship("Submission", back_populates="problem")
 ```
 
-**Steps:**
+- **difficulty**: Float value between 1.0 and 9.0, following the defined scale:
+  - **1.0 - 1.5: Easy (Green)**
+  - **2.0 - 3.5: Intermediate (Blue)**
+  - **4.0 - 6.0: Advanced (Yellow)**
+  - **6.5 - 8.0: Expert (Red)**
+  - **8.5 - 9.0: Master (Deep Red)**
+  - See the [Usage Guide](./usage.md#creating-a-new-problem) for detailed descriptions and examples.
 
-1.  **User Submits**: Via Frontend.
-2.  **API Request**: Frontend `POST /api/v1/submissions`.
-3.  **DB Create**: Backend creates `Submission` (status: pending).
-4.  **Publish Task**: Backend sends `submission_id` to RabbitMQ `evaluation_queue`.
-5.  **API Response**: Backend returns `202 Accepted` with `submission_id`.
-6.  **Polling**: Frontend polls `GET /api/v1/submissions/{id}` for status.
-7.  **Worker Consume**: Judge Worker gets `submission_id` from RabbitMQ.
-8.  **Worker Fetch**: Worker gets full submission details from DB.
-9.  **Evaluation**: Worker executes evaluation logic (currently mock).
-10. **DB Update**: Worker updates `Submission` with results (status, score, feedback, errors).
-11. **Result Display**: Frontend polling retrieves and displays results.
+#### Error Model
 
-### Detailed Evaluation Process
+The standardized format for errors detected in submissions:
 
-The evaluation pipeline consists of these primary components:
+```python
+# Represented as a JSON object within the Submission model
+ErrorDetail = {
+    "id": str,            # Unique identifier for the error
+    "description": str,   # Detailed explanation of the error
+    "severity": bool,     # false = trivial, true = non_trivial
+    "status": str,        # "active", "appealing", "resolved", "rejected", "overturned"
+}
+```
 
-```mermaid
-flowchart LR
-    subgraph Submission Processing
-        direction TB
-        A[Image] -->|OCR| B[LaTeX]
-        C[LaTeX Submission] --> D
-        B --> D[find_all_errors]
-        D --> E[evaluate_solution]
-        E --> F[return_evaluation]
-    end
+- **Status Lifecycle**: See [Judging Flow > Error Status Lifecycle](./judging_flow.md#error-status-lifecycle) for detailed explanations.
+    - `active`, `appealing`, `resolved`, `rejected`, `overturned` (future)
+
+#### Submission Model
+
+```python
+class Submission(Base):
+    __tablename__ = "submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    problem_id = Column(Integer, ForeignKey("problems.id"), nullable=False, index=True)
+    solution_text = Column(Text, nullable=False)
+    submitted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    status = Column(String, nullable=False, index=True)  # "pending", "processing", "appealing", "completed", "evaluation_error"
+    appeal_attempts = Column(Integer, default=0, nullable=False) # Tracks number of appeal batches submitted (max 5)
     
-    F --> G[(Database Update)]
+    # Evaluation results
+    score = Column(Integer, nullable=True)  # Score (potentially updated after appeal)
+    errors = Column(JSON, nullable=True)  # List of ErrorDetail objects
+    
+    # Relationship back to the problem
+    problem = relationship("Problem", back_populates="submissions")
 ```
 
-1. **Image Processing** (if needed): For image submissions, OCR converts to LaTeX
-2. **Error Detection**: Analyzes the submission for logical and mathematical errors
-3. **Evaluation**: Assigns score and generates feedback based on errors found
-4. **Results**: Returns structured evaluation data to update the submission
+- **Status Lifecycle**: See [Judging Flow > Submission Status Lifecycle](./judging_flow.md#submission-status-lifecycle) for detailed explanations.
+    - `pending`, `processing`, `appealing`, `completed`, `evaluation_error`
 
-### Appeal Flow
+## Judging Flow & Evaluation Pipeline
+
+The evaluation pipeline is the core of MOOJ's functionality, handling the asynchronous submission and evaluation workflow, including appeals.
+
+**See Also:**
+- **[Judging Flow](./judging_flow.md)**: Detailed description of submission processing, status lifecycles, and the appeal/re-evaluation process.
+- [Development Guide > Evaluation Pipeline](./development.md#evaluation-pipeline): Information on the evaluator interface and implementation details.
+
+### Evaluator Architecture
+
+MOOJ uses a modular evaluator system based on the `BaseEvaluator` interface, managed by the `EvaluatorRouter`. This allows for different evaluation strategies.
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant BackendAPI
-    participant Database
-
-    User->>Frontend: Submits Appeal for specific error
-    Frontend->>BackendAPI: POST /api/v1/submissions/{id}/appeals (body: {error_id, justification})
-    BackendAPI->>Database: Find Submission & Update specific Error status to 'appealed'
-    Database-->>BackendAPI: Confirm update
-    BackendAPI-->>Frontend: Return Updated Submission Data
-    Frontend->>User: Update UI to show appealed status
+flowchart TB
+    A[Submission] --> B[Evaluation Router]
+    B --> C{Evaluator Selection}
+    C --> D[Placeholder Evaluator]
+    C --> E[Future: LLM Evaluator]
+    C --> F[Future: Rules-Based Evaluator]
+    D & E & F --> G[Standardized Result Format]
+    G --> H[Database Storage]
 ```
 
-**Steps:**
+## Fault Tolerance & Error Handling
 
-1.  **User Appeals**: Via Frontend for a specific error.
-2.  **API Request**: Frontend `POST /api/v1/submissions/{id}/appeals` with `error_id` and justification.
-3.  **DB Update**: Backend finds submission and updates the specific error's status to `appealed`.
-4.  **API Response**: Backend returns updated submission data.
-5.  **UI Update**: Frontend shows the appealed status.
+The system is designed to be fault-tolerant, particularly in the asynchronous evaluation pipeline:
+
+```mermaid
+flowchart TD
+    A[API Endpoint] --> B{RabbitMQ Available?}
+    B -->|Yes| C[Queue Task]
+    B -->|No| D[Synchronous Fallback]
+    C --> E[Judge Worker Processes Task]
+    D --> F[Direct Evaluation]
+    E --> G[Update Database]
+    F --> G
+```
+
+1. **RabbitMQ Connection Handling**:
+   - Multiple connection attempts with exponential backoff
+   - Detailed connection error logging
+   - Synchronous processing fallback when messaging system is unavailable
+
+2. **Worker Resiliency**:
+   - Automatic reconnection to RabbitMQ if connection is lost
+   - Health check endpoint for monitoring worker status
+   - Graceful shutdown handling through signal handlers
+
+3. **Database Transaction Safety**:
+   - All database operations wrapped in try/except blocks
+   - Proper transaction rollback on errors
+   - Session management to prevent connection leaks
+
+These mechanisms ensure that even if components of the system experience temporary failures, the overall system continues to function and recover automatically when possible.
 
 ## Current Implementation vs. Target Architecture
 

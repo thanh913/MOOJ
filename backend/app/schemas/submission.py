@@ -7,17 +7,18 @@ import enum
 class SubmissionStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"
+    appealing = "appealing"
     completed = "completed"
-    failed = "failed"
+    evaluation_error = "evaluation_error"
 
 # Schema for the Error object within Submission response
 class ErrorDetail(BaseModel):
     id: str
-    type: str
+    type: Optional[str] = None
     location: Optional[str] = None
     description: str
-    severity: Optional[str] = None
-    status: Optional[str] = 'active' # Default status
+    severity: Optional[bool] = None
+    status: Optional[str] = 'active'
 
 # Base properties shared by submission schemas
 class SubmissionBase(BaseModel):
@@ -37,6 +38,7 @@ class SubmissionInDBBase(SubmissionBase):
     score: Optional[int] = None
     feedback: Optional[str] = None
     errors: Optional[List[ErrorDetail]] = None
+    appeal_attempts: int = 0
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -54,4 +56,14 @@ class Submission(SubmissionInDBBase):
 
 class AppealCreate(BaseModel):
     error_id: str
-    justification: str 
+    justification: str
+
+# Schema for submitting a single error appeal within a batch
+class ErrorAppeal(BaseModel):
+    error_id: str
+    justification: str
+    image_justification: Optional[str] = None  # Optional field for base64-encoded image data
+
+# Schema for the batch appeal request body
+class MultiAppealCreate(BaseModel):
+    appeals: List[ErrorAppeal] = Field(..., min_length=1) 

@@ -34,7 +34,7 @@ const Header: React.FC = () => {
   const navItems = [
     { text: 'Problems', path: '/problems', icon: <ListAltIcon /> },
     // Add submission link placeholder
-    { text: 'My Submissions', path: '/submissions', icon: <AssignmentIcon /> }, 
+    { text: 'Submissions', path: '/submissions', icon: <AssignmentIcon /> }, 
   ];
   
   const handleDrawerToggle = () => {

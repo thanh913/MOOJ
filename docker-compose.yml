@@ -30,13 +30,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/mooj"
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mooj
       RABBITMQ_HOST: rabbitmq
     depends_on:
       db:
@@ -44,10 +45,11 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8000/health"] # Assuming a /health endpoint
-        interval: 10s
-        timeout: 5s
+        test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/submissions/health')"]
+        interval: 30s
+        timeout: 10s
         retries: 5
+        start_period: 30s
 
   db:
     image: postgres:14
@@ -84,21 +86,29 @@ services:
 
   judge-worker:
     build:
-      context: .
-      dockerfile: ./judge-worker/Dockerfile
+      context: ./judge-worker
+      dockerfile: Dockerfile
     volumes:
-      # Mount backend app code to /app inside container
-      - ./backend/app:/app 
-      # Mount worker script to /worker.py inside container
-      - ./judge-worker/worker.py:/worker.py 
+      - ./judge-worker:/app
+      - ./backend:/backend
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/mooj"
       RABBITMQ_HOST: rabbitmq
+      PYTHONPATH: /backend
+      LOG_LEVEL: INFO
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
 volumes:

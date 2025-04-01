@@ -5,8 +5,8 @@ import { EndpointBuilder } from '@reduxjs/toolkit/dist/query/endpointDefinitions
 export const baseApi = createApi({
   reducerPath: 'baseApi',
   baseQuery: fetchBaseQuery({
-    // Use absolute URL for direct browser access to the mapped backend port
-    baseUrl: 'http://localhost:8000/api/v1/',
+    // Use relative URL for better proxy handling
+    baseUrl: '/api/v1/',
     // Add basic error handling for common network issues
     fetchFn: async (...args) => {
       try {

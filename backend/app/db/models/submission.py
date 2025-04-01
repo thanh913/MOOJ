@@ -10,8 +10,9 @@ from app.db.base_class import Base
 class SubmissionStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"
+    appealing = "appealing"
     completed = "completed"
-    failed = "failed"
+    evaluation_error = "evaluation_error"
 
 class Submission(Base):
     __tablename__ = "submissions"
@@ -23,6 +24,7 @@ class Submission(Base):
     solution_text = Column(Text, nullable=False)
     submitted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     status = Column(SQLEnum(SubmissionStatus), default=SubmissionStatus.pending, nullable=False, index=True)
+    appeal_attempts = Column(Integer, default=0, nullable=False)
     
     # Fields to store evaluation results (nullable initially)
     score = Column(Integer, nullable=True)
