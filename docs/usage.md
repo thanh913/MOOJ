@@ -61,7 +61,6 @@ Only administrators and moderators can create new problems.
      - **8.5 - 9.0: Master (Deep Red)**
        - *Description:* Requires deep insight, novel strategies, synthesis across advanced fields, or intense technicality/endurance.
        - *Examples:* Challenging graduate problems, developing bespoke techniques, simplified research questions, hardest competition problems (IMO P3/P6, Putnam A5/A6/B5/B6).
-   - **Topics**: Relevant mathematical topics (e.g., "calculus", "linear algebra")
 4. Toggle "Is Published" to make the problem visible to users.
 5. Click "Create Problem".
 
