@@ -25,49 +25,49 @@ from app.crud.problem import create_problem
 PROBLEMS = [
     {
         "id": 1,
-        "title": "Euler Polynomial Composite",
-        "statement": "Find the smallest positive integer \\( n \\) such that the value \\( P(n) = n^2 + n + 41 \\) is a composite number.",
+        "title": "Euler Polynomial Composites",
+        "statement": "Find the smallest positive integer \\( n \\) such that the value\n\\[ P(n) = n^2 + n + 41 \\]\nis a composite number. Show your working.",
         "difficulty": 1.5,
-        "topics": ["number theory", "primes"],
+        "topics": ["number theory", "primes", "polynomials"],
         "is_published": True
     },
     {
         "id": 2,
-        "title": "Min Value with Constraint",
-        "statement": "Let \\( a \\) and \\( b \\) be positive real numbers such that \\( a+b=1 \\). Find the minimum value of the expression \\( \\left(1 + \\frac{1}{a}\\right)\\left(1 + \\frac{1}{b}\\right) \\).",
+        "title": "Constrained Minimum Value",
+        "statement": "Let \\( a \\) and \\( b \\) be positive real numbers such that\n\\[ a+b=1 \\]\nFind the minimum value of the expression:\n\\[ \\left(1 + \\frac{1}{a}\\right)\\left(1 + \\frac{1}{b}\\right) \\]\nShow your working.",
         "difficulty": 2.0,
-        "topics": ["algebra", "inequalities", "AM-GM"],
+        "topics": ["algebra", "inequalities", "optimization"],
         "is_published": True
     },
     {
         "id": 3,
-        "title": "Integer Solutions (Bounded)",
-        "statement": "Find the number of non-negative integer solutions to the equation \\( x_1 + x_2 + x_3 = 15 \\) subject to the constraints \\( x_1 \\le 5 \\), \\( x_2 \\le 7 \\), and \\( x_3 \\le 8 \\).",
+        "title": "Bounded Integer Solutions",
+        "statement": "Find the number of non-negative integer solutions \\( (x_1, x_2, x_3) \\) to the equation:\n\\[ x_1 + x_2 + x_3 = 15 \\]\nSubject to the constraints:\n\\( x_1 \\le 5 \\)\n\\( x_2 \\le 7 \\)\n\\( x_3 \\le 8 \\)\nShow your working.",
         "difficulty": 4.0,
         "topics": ["combinatorics", "counting", "inclusion-exclusion"],
         "is_published": True
     },
     {
         "id": 4,
-        "title": "Linear Regression Loss Gradient",
-        "statement": "Consider the squared error loss function \\( L(w_0, w_1) = \\frac{1}{2m} \\sum_{i=1}^{m} (y^{(i)} - (w_0 + w_1 x^{(i)}))^2 \\) for a simple linear regression model \\( \\hat{y} = w_0 + w_1 x \\) and a dataset \\( \\{(x^{(i)}, y^{(i)})\\}_{i=1}^m \\). Calculate the partial derivative of \\( L \\) with respect to the weight \\( w_1 \\), i.e., \\( \\frac{\\partial L}{\\partial w_1} \\).",
+        "title": "Linear Regression Gradient",
+        "statement": "Consider the squared error loss function for a simple linear regression model \\( \\hat{y} = w_0 + w_1 x \\) and a dataset \\( \\{(x^{(i)}, y^{(i)})\\}_{i=1}^m \\):\n\\[ L(w_0, w_1) = \\frac{1}{2m} \\sum_{i=1}^{m} (y^{(i)} - (w_0 + w_1 x^{(i)}))^2 \\]\nCalculate the partial derivative of \\( L \\) with respect to the weight \\( w_1 \\):\n\\[ \\frac{\\partial L}{\\partial w_1} \\]\nShow your working.",
         "difficulty": 3.0,
         "topics": ["machine learning", "calculus", "linear regression"],
         "is_published": True
     },
     {
         "id": 5,
-        "title": "Expected Value (Biased Coin)",
-        "statement": "A random variable \\( X \\) represents the number of heads obtained in \\( 3 \\) independent flips of a biased coin, where the probability of heads on a single flip is \\( p = 0.6 \\). Calculate the expected value \\( E[X] \\).",
-        "difficulty": 1.5,
+        "title": "Biased Coin Expected Value",
+        "statement": "A random variable \\( X \\) represents the number of heads obtained in \\( 3 \\) independent flips of a biased coin.\nThe probability of heads on a single flip is \\( p = 0.6 \\).\nCalculate the expected value \\( E[X] \\).\nShow your working.",
+        "difficulty": 2.0,
         "topics": ["machine learning", "probability", "expected value"],
         "is_published": True
     },
     {
         "id": 6,
-        "title": "Bayes' Theorem Classification",
-        "statement": "A diagnostic test for a rare disease has \\( 99 \\)% sensitivity (true positive rate, \\( P(\\text{Test Positive} | \\text{Disease}) = 0.99 \\)) and \\( 95 \\)% specificity (true negative rate, \\( P(\\text{Test Negative} | \\text{No Disease}) = 0.95 \\)). The disease affects \\( 0.1 \\)% of the population (\\( P(\\text{Disease}) = 0.001 \\)). If a randomly selected person tests positive, what is the probability they actually have the disease, \\( P(\\text{Disease} | \\text{Test Positive}) \\)? Use Bayes' Theorem: \\( P(A|B) = \\frac{P(B|A)P(A)}{P(B)} \\).",
-        "difficulty": 2.0,
+        "title": "Bayesian Disease Probability",
+        "statement": "A diagnostic test for a rare disease has the following characteristics:\n- Sensitivity (true positive rate): \\( P(\\text{Test Positive} | \\text{Disease}) = 0.99 \\) (99%)\n- Specificity (true negative rate): \\( P(\\text{Test Negative} | \\text{No Disease}) = 0.95 \\) (95%)\nThe prevalence of the disease in the population is \\( P(\\text{Disease}) = 0.001 \\) (0.1%).\n\nIf a randomly selected person tests positive, what is the probability they actually have the disease, \\( P(\\text{Disease} | \\text{Test Positive}) \\)?\n\nRecall Bayes' Theorem:\n\\[ P(A|B) = \\frac{P(B|A)P(A)}{P(B)} \\]\nShow your working.",
+        "difficulty": 2.5,
         "topics": ["machine learning", "probability", "Bayes' theorem"],
         "is_published": True
     }

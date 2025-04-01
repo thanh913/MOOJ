@@ -12,120 +12,84 @@ type MathContentProps = {
 
 // Helper function to parse and render markdown with LaTeX
 const renderWithKaTeX = (content: string): JSX.Element[] => {
-  // Split content by LaTeX delimiters
-  const parts = [];
-  let currentIndex = 0;
-  
-  // Look for block math first (\\[...\\])
-  const blockRegex = /\\\[(.*?)\\\]/g;
-  let blockMatch;
-  
-  while ((blockMatch = blockRegex.exec(content)) !== null) {
-    // Add text before the math block
-    if (blockMatch.index > currentIndex) {
+  const parts: JSX.Element[] = [];
+  // Regex to find block or inline math delimiters
+  // Captures the content inside: group 1 for block, group 2 for inline
+  const regex = /(\\\[.*?\]|\\\(.*?\\\))/g;
+  let lastIndex = 0;
+  let match;
+  let keyIndex = 0;
+
+  while ((match = regex.exec(content)) !== null) {
+    // Add the text segment before the math
+    if (match.index > lastIndex) {
       parts.push(
-        <Typography 
-          key={`text-${currentIndex}`} 
-          component="div" 
-          dangerouslySetInnerHTML={{ __html: content.substring(currentIndex, blockMatch.index) }} 
-        />
+        <Typography key={`text-${keyIndex++}`} component="span">
+          {content.substring(lastIndex, match.index)}
+        </Typography>
       );
     }
-    
-    // Add the math block
+
+    const mathContent = match[1]; // The captured full math segment, e.g., \[E=mc^2\] or \(ax^2+b=0\)
+
     try {
-      parts.push(
-        <BlockMath key={`block-${blockMatch.index}`} math={blockMatch[1]} />
-      );
+      if (mathContent.startsWith('\\\[')) {
+        // Block Math
+        const blockContent = mathContent.slice(2, -2); // Remove \[ and \]
+        parts.push(
+          // Wrap BlockMath in Typography for proper block display behavior
+          <Typography key={`block-${keyIndex++}`} component="div" sx={{ textAlign: 'center', my: 1 }}>
+             <BlockMath math={blockContent} />
+          </Typography>
+        );
+      } else if (mathContent.startsWith('\\\(')) {
+        // Inline Math
+        const inlineContent = mathContent.slice(2, -2); // Remove \( and \)
+        parts.push(
+          <InlineMath key={`inline-${keyIndex++}`} math={inlineContent} />
+        );
+      } else {
+         // Should not happen with the regex, but handle as text if it does
+         parts.push(<span key={`unknown-${keyIndex++}`}>{mathContent}</span>);
+      }
     } catch (e) {
-      console.error('Error rendering block math:', e);
+      console.error('Error rendering math:', e);
+      // Add error message inline
       parts.push(
-        <Box key={`error-${blockMatch.index}`} sx={{ color: 'error.main', fontFamily: 'monospace' }}>
-          Error rendering: {blockMatch[1]}
+        <Box key={`error-${keyIndex++}`} component="span" sx={{ color: 'error.main', fontFamily: 'monospace' }}>
+          {`[KaTeX Error: ${mathContent}]`}
         </Box>
       );
     }
-    
-    currentIndex = blockMatch.index + blockMatch[0].length;
+
+    lastIndex = regex.lastIndex;
   }
-  
-  // Handle remaining text and look for inline math (\\(...\\))
-  if (currentIndex < content.length) {
-    const remainingContent = content.substring(currentIndex);
-    const inlineRegex = /\\\((.*?)\\\)/g;
-    let inlineParts = [];
-    let inlineCurrentIndex = 0;
-    let inlineMatch;
-    
-    while ((inlineMatch = inlineRegex.exec(remainingContent)) !== null) {
-      // Add text before the inline math
-      if (inlineMatch.index > inlineCurrentIndex) {
-        inlineParts.push(
-          <span 
-            key={`inline-text-${inlineCurrentIndex}`}
-            dangerouslySetInnerHTML={{ 
-              __html: remainingContent.substring(inlineCurrentIndex, inlineMatch.index) 
-            }} 
-          />
-        );
-      }
-      
-      // Add the inline math
-      try {
-        inlineParts.push(
-          <InlineMath key={`inline-math-${inlineMatch.index}`} math={inlineMatch[1]} />
-        );
-      } catch (e) {
-        console.error('Error rendering inline math:', e);
-        inlineParts.push(
-          <span key={`inline-error-${inlineMatch.index}`} style={{ color: 'red', fontFamily: 'monospace' }}>
-            Error rendering: {inlineMatch[1]}
-          </span>
-        );
-      }
-      
-      inlineCurrentIndex = inlineMatch.index + inlineMatch[0].length;
-    }
-    
-    // Add any remaining text
-    if (inlineCurrentIndex < remainingContent.length) {
-      inlineParts.push(
-        <span 
-          key={`final-text`}
-          dangerouslySetInnerHTML={{ 
-            __html: remainingContent.substring(inlineCurrentIndex) 
-          }} 
-        />
-      );
-    }
-    
-    // If we found any inline math, wrap it all in Typography
-    if (inlineParts.length > 0) {
-      parts.push(
-        <Typography key={`inline-container-${currentIndex}`} component="div">
-          {inlineParts}
-        </Typography>
-      );
-    } else {
-      // Otherwise just add the remaining content as regular HTML
-      parts.push(
-        <Typography 
-          key={`text-${currentIndex}`} 
-          component="div" 
-          dangerouslySetInnerHTML={{ __html: remainingContent }} 
-        />
-      );
-    }
+
+  // Add any remaining text after the last match
+  if (lastIndex < content.length) {
+    parts.push(
+      <Typography key={`text-${keyIndex++}`} component="span">
+        {content.substring(lastIndex)}
+      </Typography>
+    );
   }
-  
+
+  // Wrap all parts in a single Typography container for consistent styling if needed,
+  // or return the array directly if parent handles spacing.
+  // Returning array directly for flexibility.
   return parts;
 };
 
 // Component for rendering markdown with LaTeX math expressions
 const MathContent: React.FC<MathContentProps> = ({ content, containerProps }) => {
+  const renderedParts = renderWithKaTeX(content);
   return (
-    <Box sx={{ overflowX: 'auto' }} {...containerProps}>
-      {renderWithKaTeX(content)}
+    // Use a Box that allows flow layout; Typography was forcing block context
+    <Box sx={{ overflowX: 'auto', lineHeight: 1.7 }} {...containerProps}>
+      {renderedParts.map((part, index) => (
+        // Render each part; spans/InlineMath will flow, Typography[component=div]/BlockMath will break line
+        <React.Fragment key={index}>{part}</React.Fragment>
+      ))}
     </Box>
   );
 };
